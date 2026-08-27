@@ -216,6 +216,31 @@ def test_mixed_format_inheritance_preserves_child_precedence(
     assert flat["custom_runtime_value"] == "preserved"
 
 
+def test_structured_env_section_survives_base_inheritance(tmp_path):
+    base = tmp_path / "base.yaml"
+    child = tmp_path / "child.yaml"
+    base.write_text(
+        "env:\n"
+        "  name: alfworld\n"
+        "  split_mode: ratio\n",
+        encoding="utf-8",
+    )
+    child.write_text(
+        "_base_: base.yaml\n"
+        "env:\n"
+        "  name: searchqa\n"
+        "  split_dir: data/searchqa_split\n",
+        encoding="utf-8",
+    )
+
+    flat = flatten_config(load_config(str(child)))
+
+    # The env section must not be clobbered by the env.name -> env flatten key.
+    assert flat["env"] == "searchqa"
+    assert flat["split_dir"] == "data/searchqa_split"
+    assert flat["split_mode"] == "ratio"
+
+
 @pytest.mark.parametrize(
     ("overrides", "expected_path", "expected_sandbox"),
     [
