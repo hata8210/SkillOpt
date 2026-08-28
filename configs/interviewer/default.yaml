@@ -5,13 +5,13 @@ model:
 
 train:
   train_size: 34
-  batch_size: 8
+  batch_size: 34
   accumulation: 1
-  num_epochs: 2
+  num_epochs: 3
 
 gradient:
-  minibatch_size: 4
-  merge_batch_size: 4
+  minibatch_size: 34
+  merge_batch_size: 34
   analyst_workers: 8
 
 optimizer:
@@ -27,7 +27,7 @@ evaluation:
 
 env:
   name: interviewer
-  skill_init: skillopt/envs/interviewer/skills/initial.md
+  skill_init: skillopt/envs/interviewer/skills/initial_blank.md
   split_mode: split_dir
   split_dir: data/interviewer_split
   data_path: ""

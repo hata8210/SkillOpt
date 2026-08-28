@@ -332,6 +332,12 @@ python scripts/materialize_interviewer.py
 
 ### 6.2 训练
 
+先加载环境变量（`openai_compatible` 后端在模块导入时读取 `OPENAI_COMPATIBLE_*`，必须在运行前 source，否则 API key 会兜底成占位符 `dummy` 导致 401）：
+
+```bash
+set -a; source .env; set +a
+```
+
 ```bash
 python scripts/train.py \
   --config configs/interviewer/default.yaml \
@@ -344,6 +350,12 @@ python scripts/train.py \
 ```
 
 ### 6.3 评估
+
+同样先加载环境变量：
+
+```bash
+set -a; source .env; set +a
+```
 
 ```bash
 python scripts/eval_only.py \
