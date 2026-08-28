@@ -2,7 +2,8 @@
 
 > 目标：基于 `data/interviewer_data/data.csv`（香港物业管理保安员面试数据）新增一个 SkillOpt benchmark。
 > 任务定义：给定招聘岗位要求（`jd`）+ 面试对话记录（`context`），由模型按评分表给出总分，据此判断是否录用；监督标签为 `result` 列（`通过` / `不通過`）。
-> 本文档为完整实现方案，含任务设计、评分规则、保护机制、文件清单、配置与验证步骤。
+> 本文档为完整实现方案，含任务设计、评分规则、约束机制、文件清单、配置与验证步骤。
+> 设计决策：**不改任何通用核心代码**，不占用 `SLOW_UPDATE` / `APPENDIX` 保护区语义；自定义 tag 仅作标识，约束主要靠环境专属 analyst prompt（软约束）。
 
 ---
 
@@ -10,7 +11,7 @@
 
 0. [背景与数据](#0-背景与数据)
 1. [任务与评分设计](#1-任务与评分设计)
-2. [「只 train 评分细则」的保护方案](#2-只-train-评分细则的保护方案)
+2. [「只 train 评分细则」的软约束方案](#2-只-train-评分细则的软约束方案)
 3. [数据物化与切分](#3-数据物化与切分)
 4. [文件清单](#4-文件清单)
 5. [配置要点](#5-配置要点)
@@ -97,13 +98,13 @@ gold 映射：`通过` → hire，`不通過` → reject。
 
 ---
 
-## 2. 「只 train 评分细则」的保护方案
+## 2. 「只 train 评分细则」的软约束方案
 
-训练约束：**只允许增删改「评分细则表」规则行的内容**；表头列结构、三个总分区间、岗位要求及其它所有表述一律不动。
+训练约束：**希望绝大部分修改落在「评分细则表」规则行上**（增/删/改）；表头列结构、三个总分区间、岗位要求及其它表述应尽量保持不动。
 
-分四层保障：
+约束强度说明：这是**软约束**，不做机制级强制。自定义 tag 不会被核心识别为保护区（`_PROTECTED_REGIONS` 只认识 `SLOW_UPDATE` / `APPENDIX`），它们的作用是给 analyst 明确的区域标识和指令锚点。若训练中偶尔修改到固定区，属于可接受范围；如需更强约束，可后续在 env 内做编辑过滤（见 2.4）。
 
-### 2.1 第 1 层：`initial.md` 结构（复制 SKILL_template.md 原文，只加标记）
+### 2.1 `initial.md` 结构（复制 SKILL_template.md 原文，只加标识 tag）
 
 ```markdown
 <!-- SKILL_FIXED_START -->
@@ -118,7 +119,7 @@ gold 映射：`通过` → hire，`不通過` → reject。
 | 判断项 | 合格标准 | 0分 | 0.5分 | 1分 |
 |--------|----------|-----|-------|-----|
 <!-- TABLE_HEADER_END -->
-| **1. 自我介绍** | … | … | … | … |   ← 8 行规则 = 唯一可编辑区
+| **1. 自我介绍** | … | … | … | … |   ← 8 行规则 = 主要可编辑区
 | **2. 工作单位** | … | … | … | … |
 …（可增减规则行）
 
@@ -132,39 +133,31 @@ gold 映射：`通过` → hire，`不通過` → reject。
 <!-- SKILL_FIXED_TAIL_END -->
 ```
 
-- 表头行（列结构）用 `TABLE_HEADER` 标记保护，规则行裸露可编辑
-- 岗位要求、总分区间表等其它表述全部用 `SKILL_FIXED` / `SKILL_FIXED_TAIL` 保护
-- 三组标记在**其它环境不存在**时完全无影响（见 2.2）
+- 表头行、岗位要求、总分区间表等**固定内容用 tag 标识**，作为 analyst 的识别锚点（无强制保护）
+- 三组 tag 仅存在于本环境的 skill 中，对其它环境无任何影响
+- 规则行是**主要可编辑区**，允许增/删/改
 
-### 2.2 第 2 层：机制层（保护区）
-
-`skillopt/optimizer/skill.py` 已有通用保护区机制（`_PROTECTED_REGIONS` 标记对，`APPENDIX` 就是这么加的）。做两处小改动：
-
-1. 在 `_PROTECTED_REGIONS` 元组追加三组标记对：
-   - `(SKILL_FIXED_START, SKILL_FIXED_END)`
-   - `(TABLE_HEADER_START, TABLE_HEADER_END)`
-   - `(SKILL_FIXED_TAIL_START, SKILL_FIXED_TAIL_END)`
-2. 把三组标记加进 `_strip_slow_update_markers` 与 `evaluation/gate.py` 的 strip 列表
-
-效果（既有逻辑自动生效）：
-
-- `replace` / `delete` / `insert_after` 锚点落在固定区 → 自动 `skipped_protected_region` 跳过
-- 规则行的 `replace`（改写细则）、`insert_after`（增行）、`delete`（删行）→ 正常生效
-- `append` 会落到文档最早保护区之前 → 在分析师 prompt 中禁止使用 `append`
-
-### 2.3 第 3 层：Prompt 层（分析师约束）
+### 2.2 约束机制：环境专属 analyst prompt（软约束）
 
 写环境专属 `prompts/analyst_error.md`、`prompts/analyst_success.md`（复制通用版改写），明确约束：
 
-- 只能增删改「评分细则表」规则行的内容
-- 禁止修改表头行、禁止改变列数、禁止修改总分区间映射、禁止修改岗位要求及其它任何表述
+- 编辑应尽量且优先落在「评分细则表」规则行内（`TABLE_HEADER` 与 `TABLE_HEADER_END` 之间的内容）；`<!-- SKILL_FIXED_* -->` / `<!-- TABLE_HEADER_* -->` 之间的文本属于固定区域，非必要不要修改
+- 若确需调整，禁止改动表头行（五列结构：判断项/合格标准/0分/0.5分/1分）、禁止改变列数、禁止修改总分区间映射（0–4 / 4.5–6 / 6.5–8）
 - 新增规则行必须用 `insert_after` 锚定某条已有规则行，禁止用 `append`
-- 不讨论输出格式、语言风格等与评分细则无关的表述
+- target 尽量用整行唯一文本（避免短词命中固定区域造成误编辑）
+- 不讨论输出格式、语言风格等与评分细则无关的表述；所有反思结论应落到"评分细则如何改"
 
-### 2.4 第 4 层：配置层
+### 2.3 配置层
 
 - `optimizer.skill_update_mode: patch`（**禁用** `full_rewrite` / `rewrite_from_suggestions`，防止整篇重写破坏格式）
 - 关闭 `use_slow_update`、`use_meta_skill`（避免往保护附录注入额外表述，污染 target 看到的 skill）
+
+### 2.4 后续增强（如需要）
+
+若软约束下固定区被修改频率过高，可二选一（均不改核心代码）：
+
+1. 在 `InterviewerAdapter` 中覆盖 `reflect()`：过滤 `run_minibatch_reflect` 产出的 edits，丢弃 target 落在固定 tag 区域内的编辑（代码全在 `skillopt/envs/interviewer/`）
+2. 进一步强化 analyst prompt 措辞（如给出"禁止"清单与示例）
 
 ---
 
@@ -206,13 +199,12 @@ gold 映射：`通过` → hire，`不通過` → reject。
 | `skillopt/envs/interviewer/evaluator.py` | `<score>` 解析、区间判定、hard/soft 打分 |
 | `skillopt/envs/interviewer/rollout.py` | `system=skill`，`user=question` → `chat_target` → 打分 → 写 `predictions/<id>/conversation.json` |
 | `skillopt/envs/interviewer/adapter.py` | 继承 `EnvAdapter`，实现 4 个抽象方法，`reflect()` 继承默认 |
-| `skillopt/envs/interviewer/skills/initial.md` | SKILL_template.md 原文 + 保护标记 |
-| `skillopt/envs/interviewer/prompts/analyst_error.md`、`analyst_success.md` | 带编辑约束的分析师 prompt |
+| `skillopt/envs/interviewer/skills/initial.md` | SKILL_template.md 原文 + 自定义标识 tag |
+| `skillopt/envs/interviewer/prompts/analyst_error.md`、`analyst_success.md` | 带软约束的分析师 prompt（约束编辑落在评分细则行） |
 | `configs/interviewer/default.yaml` | `env.name: interviewer`，Patch 模式，小 batch |
 | 修改 `scripts/train.py`、`scripts/eval_only.py` | 各注册一行 `_ENV_REGISTRY["interviewer"] = ...`（包 try/except） |
-| 修改 `skillopt/optimizer/skill.py`、`skillopt/evaluation/gate.py` | 保护区元组追加自定义标记 + strip 列表 |
 
-**不需要动的通用文件**：`skillopt/engine/trainer.py`、`skillopt/envs/base.py`、`skillopt/datasets/base.py`、`skillopt/gradient/*`、`skillopt/model/*`、`skillopt/config.py`。
+**不需要动的文件（核心代码零改动）**：`skillopt/engine/trainer.py`、`skillopt/envs/base.py`、`skillopt/datasets/base.py`、`skillopt/gradient/*`、`skillopt/optimizer/*`、`skillopt/evaluation/*`、`skillopt/model/*`、`skillopt/config.py`。
 
 **接口契约**（易踩坑）：
 
@@ -307,11 +299,11 @@ python scripts/eval_only.py \
   --split valid_unseen
 ```
 
-### 6.4 保护生效验证
+### 6.4 约束生效验证（软约束）
 
-1. 检查 `history.json` / 训练日志中 edits 的 `status`，应出现 `skipped_protected_region`
-2. 对比最终 skill 与 `initial.md`：表头行、列数、三个总分区间、岗位要求必须逐字一致
-3. 只允许差异出现在「评分细则表」的规则行（增/删/改）
+1. 检查 `history.json` / 训练日志中 edits 的 `target` 分布：绝大多数应指向「评分细则表」规则行
+2. 对比最终 skill 与 `initial.md`：表头行、列数、总分区间、岗位要求应基本保持不变
+3. 若固定区被频繁修改，说明 analyst prompt 约束不足，需强化措辞或启用 2.4 的 env 内编辑过滤
 
 ---
 
@@ -320,6 +312,7 @@ python scripts/eval_only.py \
 - **样本量小（34 条）**：train 仅 20 条，指标波动大，结果作为试点跑通管线；后续扩充数据更有意义
 - **标签偏斜**：通过 24 / 不通過 10，切分已按 result 分层缓解
 - **jd 单一**：技能会是「香港保安员招聘评估」的专项技能，泛化有限
+- **软约束强度有限**：固定区（表头/区间表/岗位要求）无法机制级禁止修改，个别编辑可能落在固定区；可接受，如频率过高再启用 2.4 增强
 - **Patch 模式残余风险**：多步编辑可能把规则行改成非法 markdown 行；分析师 prompt 约束可覆盖大部分场景，若发现可再补"应用后格式校验"回调
 - **`append` 限制**：新增行必须用 `insert_after`（append 会落到文首），已在分析师 prompt 中约束
 
@@ -331,4 +324,4 @@ python scripts/eval_only.py \
 - `docs/新增train说明.md`：新增数据集说明（必须新写的文件、注册、配置）
 - `docs/guide/new-benchmark.md`：官方英文手把手教程（docfaithful 完整最小示例）
 - `skillopt/envs/officeqa/`：最接近本方案的参考环境（dataloader / adapter 结构）
-- `skillopt/optimizer/skill.py`：保护区机制（`_PROTECTED_REGIONS`）
+- `skillopt/optimizer/skill.py`：保护区机制（`_PROTECTED_REGIONS`，本次不修改，仅了解其行为）
