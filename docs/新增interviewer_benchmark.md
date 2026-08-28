@@ -96,6 +96,31 @@ gold 映射：`通过` → hire，`不通過` → reject。
 - 可选进阶：soft 可在命中区内用总分距边界距离连续化（如 `1 - |score - 边界| / 2.5`）；起步建议先用固定值，信号更稳
 - **不要用 LLM-judge 做 soft**（不稳定会毁 optimizer）
 
+### 1.4 转换位置与数据流
+
+分数 → 结论的转换**统一发生在打分阶段（evaluator）**，物化阶段不做任何转换：
+
+```text
+物化侧（保留原始标签，不转换）                        打分侧（evaluator，统一转换）
+result 列 ─────────────► ground_truth/answers = "不通過"  ── gold_to_zone() ──► reject
+模型输出 <score>6.5</score> ─────────────────────────── parse + score_to_zone() ──► hire
+                                                                              │
+                           hard = int(hire == reject) = 0，soft = 0  ──► 写入 rollout 结果
+```
+
+两个方向的转换规则：
+
+- **gold 侧**：物化时**原样**写入 `result` 列的 `"通过"/"不通過"`（不转成 hire/reject）；转换在 evaluator 的 `gold_to_zone(label)`：`通过 → hire`、`不通過 → reject`
+- **预测侧**：模型只输出 `<score>`，不输出结论；evaluator 解析 `<score>` 后由 `score_to_zone(score)` 按固定边界转区间（`≤4 → reject`、`4 < score < 6.5 → middle`、`≥6.5 → hire`），再与 gold 区间比较产出 hard/soft
+
+为什么集中在 evaluator 而不是物化时转换：
+
+- **单一事实来源**：`parse_score()` / `score_to_zone()` / `gold_to_zone()` 集中在 `evaluator.py` 一处；以后改边界或扩展结论类别只改这一处
+- **可核对性**：物化产物保留 `"不通過"` 原始标签，人工抽查能直接对上源 CSV
+- **边界一致性安全**：区间表在 skill 固定区（不 train），evaluator 写死的边界与模板永远一致，不会出现"技能改了边界、代码没跟上"的漂移
+
+落地位置：`evaluator.py` 负责解析与转换并产出 hard/soft；`rollout.py` 调用 evaluator 并把 `id` / `hard` / `soft` 写入结果 dict；trainer 只消费这两个字段。
+
 ---
 
 ## 2. 「只 train 评分细则」的软约束方案
@@ -182,10 +207,16 @@ gold 映射：`通过` → hire，`不通過` → reject。
 
 - `id` 唯一（`interviewer_001`… 或候选名）
 - `question` 离线生成（固定、可复现），只含动态部分；jd 和评分表留在技能固定区
-3. 按固定 seed 做**按 `result` 分层**随机切分（保 通过24/不通過10 比例）
+3. 切分策略（本次采用**全量共用**）：train/val/test 三份都写入**全部 34 条**（内容相同）
 4. 输出 `data/interviewer_split/{train,val,test}/items.json` + `split_manifest.json`
 
-建议比例：train 20 / val 7 / test 7。
+**为什么全量共用**：样本只有 34 条，若按比例抽分，train/val/test 每份只剩个位数，反而让各环节覆盖变片面（比如 test 可能抽不到足够的「不通過」样本）；本次暂时不考虑过拟合问题，保证训练、selection、最终评估都覆盖完整样本分布。
+
+**可行性确认**：`SplitDataLoader` 的 `split_dir` 模式只是分别从三个目录加载 items，**没有跨 split 去重或一致性校验**；同一批 `id` 出现在不同 split 目录不会冲突（各环节的 rollout 输出目录相互独立）。训练 epoch 会按 shuffle 后的 34 条完整走一遍。
+
+**保留切换能力**：物化脚本提供 `--split-method stratified` 参数（按 `result` 分层切分 train/val/test），当前默认 `full`（34/34/34）；后续有更多数据或需要真实泛化评估时，直接切换即可。
+
+注意：全量共用下，val/test 与 train 同分布，训练中的 gate/selection 与最终评估指标都会偏乐观（更接近"记忆化"而非"泛化"），详见第 7 节风险。
 
 ---
 
@@ -193,7 +224,7 @@ gold 映射：`通过` → hire，`不通過` → reject。
 
 | 文件 | 内容 |
 |---|---|
-| `scripts/materialize_interviewer.py` | CSV → split 数据（分层切分） |
+| `scripts/materialize_interviewer.py` | CSV → split 数据（默认全量 34/34/34，可选 `--split-method stratified`） |
 | `skillopt/envs/interviewer/__init__.py` | 空包 |
 | `skillopt/envs/interviewer/dataloader.py` | `InterviewerDataLoader(SplitDataLoader)`，只实现 `load_split_items()` |
 | `skillopt/envs/interviewer/evaluator.py` | `<score>` 解析、区间判定、hard/soft 打分 |
@@ -225,7 +256,7 @@ gold 映射：`通过` → hire，`不通過` → reject。
 _base_: ../_base_/default.yaml
 
 train:
-  train_size: 20
+  train_size: 34
   batch_size: 8
   accumulation: 1
   num_epochs: 2
@@ -255,7 +286,9 @@ env:
 
 说明：
 
-- `learning_rate: 2`：34 条小样本，编辑预算调小减少无效编辑
+- `train_size: 34`：全量共用，一个 epoch 正好完整过一遍全部样本
+- `batch_size: 8`：每个 epoch 约 4~5 个 step（34 / 8）
+- `learning_rate: 2`：样本少，编辑预算调小减少无效编辑
 - `minibatch_size: 4`：样本少，反思 minibatch 相应调小
 - `max_completion_tokens: 4096`：粤语 context 最长 2848 字符 + 技能文本，够用
 - 调试阶段用 `limit: 10`、`batch_size: 4`
@@ -270,7 +303,7 @@ env:
 python scripts/materialize_interviewer.py
 ```
 
-核对：train/val/test 数量（20/7/7）与标签分布（train 约 14/6）。
+核对：train/val/test 数量均为 34（全量共用），标签分布均为 通过 24 / 不通過 10。
 
 ### 6.2 训练
 
@@ -309,8 +342,8 @@ python scripts/eval_only.py \
 
 ## 7. 风险提示
 
-- **样本量小（34 条）**：train 仅 20 条，指标波动大，结果作为试点跑通管线；后续扩充数据更有意义
-- **标签偏斜**：通过 24 / 不通過 10，切分已按 result 分层缓解
+- **全量共用 → 评估乐观**：val/test 与 train 同分布，训练中 gate/selection 与最终评估都是"见过的样本"，指标偏记忆化、无泛化信号；作为试点可接受，后续用新增数据（或切回 `--split-method stratified`）做真实评估
+- **标签偏斜**：通过 24 / 不通過 10；全量共用下训练与评估分布一致，偏斜影响主要在基线统计口径（例如全猜「通过」的基线 hard≈0.71）
 - **jd 单一**：技能会是「香港保安员招聘评估」的专项技能，泛化有限
 - **软约束强度有限**：固定区（表头/区间表/岗位要求）无法机制级禁止修改，个别编辑可能落在固定区；可接受，如频率过高再启用 2.4 增强
 - **Patch 模式残余风险**：多步编辑可能把规则行改成非法 markdown 行；分析师 prompt 约束可覆盖大部分场景，若发现可再补"应用后格式校验"回调
