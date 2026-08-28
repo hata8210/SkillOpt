@@ -78,23 +78,26 @@
 | `4 < 总分 < 6.5` | 中间区 | 可考虑进入复试（不直接录用/不录用） |
 | `总分 ≥ 6.5` | 高分区 | 录用（hire） |
 
-### 1.3 hard / soft 规则
+### 1.3 奖励规则（统一 hard，单一奖励信号）
+
+设计决策：**取消独立 soft 奖励，统一使用 hard 作为唯一奖励**。中间区（`4 < score < 6.5`）给部分奖励 `hard = 0.3`；`soft` 字段返回与 `hard` 同值，仅满足 trainer 契约（`id`/`hard`/`soft`），不承载独立语义。
 
 gold 映射：`通过` → hire，`不通過` → reject。
 
 | 预测区间 | hard | soft |
 |---|---|---|
-| 命中（高分区且 gold=通过；低分区且 gold=不通過） | 1 | 1.0 |
-| 中间区（无论 gold 是什么） | 0 | 0.5 |
+| 命中（高分区且 gold=通过；低分区且 gold=不通過） | 1 | 1.0（=hard） |
+| 中间区（无论 gold 是什么） | 0.3 | 0.3（=hard） |
 | 反区（低分区但 gold=通过；高分区但 gold=不通過） | 0 | 0 |
 | 解析失败 / 无 `<score>` | 0 | 0 |
 
 要点：
 
-- **hard**：只在"命中"时给 1，即预测区间与 gold 的决定性区间一致
-- **soft**：中间区给固定 0.5 奖励（用户明确要求）；命中区给 1.0
-- 可选进阶：soft 可在命中区内用总分距边界距离连续化（如 `1 - |score - 边界| / 2.5`）；起步建议先用固定值，信号更稳
-- **不要用 LLM-judge 做 soft**（不稳定会毁 optimizer）
+- **连续 hard 被官方支持**：`compute_score` docstring 注明 "hard may be continuous (0.0-1.0) when using smoothed reward"，gate 与日志均按 float 处理
+- **不做分数平滑**：区间内一律固定值（命中 1 / 中间区 0.3 / 反区 0），不做"距边界距离"式的连续化；上述"连续 hard"仅指跨样本聚合时取浮点均值
+- `evaluation.gate_metric` 保持默认 `hard` 即可（soft==hard 时 `mixed`/`soft` 均等价）
+- **指标口径**：hard 均值是"平滑奖励均值"而非字面准确率；基线「全猜高分」= `24×1/34 + 10×0/34 ≈ 0.71`，「全猜中间区」= `0.3`
+- **反思分组副作用**：`run_minibatch_reflect` 按 `hard` 是否为 0 分 success/failure，`hard=0.3` 的中间区轨迹会被归入 **success 组**；需在 `analyst_success.md` 中说明中间区是"部分正确"，引导分析师把规则推向决定性正确区间，而非强化停留在中间区
 
 ### 1.4 转换位置与数据流
 
@@ -105,13 +108,13 @@ gold 映射：`通过` → hire，`不通過` → reject。
 result 列 ─────────────► ground_truth/answers = "不通過"  ── gold_to_zone() ──► reject
 模型输出 <score>6.5</score> ─────────────────────────── parse + score_to_zone() ──► hire
                                                                               │
-                           hard = int(hire == reject) = 0，soft = 0  ──► 写入 rollout 结果
+                           hard = 1（命中）/ 0.3（中间区）/ 0（反区），soft = hard  ──► 写入 rollout 结果
 ```
 
 两个方向的转换规则：
 
 - **gold 侧**：物化时**原样**写入 `result` 列的 `"通过"/"不通過"`（不转成 hire/reject）；转换在 evaluator 的 `gold_to_zone(label)`：`通过 → hire`、`不通過 → reject`
-- **预测侧**：模型只输出 `<score>`，不输出结论；evaluator 解析 `<score>` 后由 `score_to_zone(score)` 按固定边界转区间（`≤4 → reject`、`4 < score < 6.5 → middle`、`≥6.5 → hire`），再与 gold 区间比较产出 hard/soft
+- **预测侧**：模型只输出 `<score>`，不输出结论；evaluator 解析 `<score>` 后由 `score_to_zone(score)` 按固定边界转区间（`≤4 → reject`、`4 < score < 6.5 → middle`、`≥6.5 → hire`），再与 gold 区间比较产出统一 hard（soft 同值）
 
 为什么集中在 evaluator 而不是物化时转换：
 
@@ -120,6 +123,24 @@ result 列 ─────────────► ground_truth/answers = "�
 - **边界一致性安全**：区间表在 skill 固定区（不 train），evaluator 写死的边界与模板永远一致，不会出现"技能改了边界、代码没跟上"的漂移
 
 落地位置：`evaluator.py` 负责解析与转换并产出 hard/soft；`rollout.py` 调用 evaluator 并把 `id` / `hard` / `soft` 写入结果 dict；trainer 只消费这两个字段。
+
+### 1.5 hard / soft 的影响边界（训练流程中的消费位置）
+
+`hard` 与 `soft` 在训练流程中的消费位置不同，边界如下（基于现有核心代码行为，本次不改核心）：
+
+| 环节 | 消费信号 | soft 的作用 |
+|---|---|---|
+| ② REFLECT 反思分组 → 修改意见生成 | **仅 hard** | 无（`soft` 不被读取） |
+| ⑥ EVALUATE / gate（accept-reject、best_skill 选优） | 默认 **hard**（由 `evaluation.gate_metric` 决定） | 可选：`mixed` / `soft` 时参与 |
+| 日志 / `history.json` / 指标观测 | hard + soft 都聚合（`compute_score`） | 观测值 |
+
+具体机制：
+
+- **修改意见生成（② REFLECT）只认 hard**：`run_minibatch_reflect`（`skillopt/gradient/reflect.py`）按 `hard` 是否为 0 把轨迹分成 failure / success 两组，决定 analyst 用 `analyst_error` 还是 `analyst_success` prompt 分析、产出哪类 patch。`soft` 完全不参与分组——中间区轨迹（hard=0.3）会进入 **success 组**
+- **训练评判（⑥ EVALUATE / gate）默认只看 hard**：`select_gate_score(hard, soft, gate_metric, mixed_weight)`（`skillopt/evaluation/gate.py`）被 baseline、每步 selection、gate、best_skill 选择共用；`gate_metric` 为 `hard`（默认）时 `soft` 不参与，为 `soft`/`mixed` 时才进入比较
+- **日志观测**：`compute_score`（`skillopt/utils/scoring.py`）把 hard/soft 都聚合成均值，写入日志与 `history.json`
+
+对本 benchmark 的含义：由于 `soft == hard`，无论 `gate_metric` 配成 `hard` / `soft` / `mixed` 结果都等价；**唯一实质边界是反思分组**——中间区的 0.3 会被当"成功"分析，靠 `analyst_success.md` 的说明引导其不强化中间区（见 2.2 与文件清单）。
 
 ---
 
@@ -231,7 +252,7 @@ result 列 ─────────────► ground_truth/answers = "�
 | `skillopt/envs/interviewer/rollout.py` | `system=skill`，`user=question` → `chat_target` → 打分 → 写 `predictions/<id>/conversation.json` |
 | `skillopt/envs/interviewer/adapter.py` | 继承 `EnvAdapter`，实现 4 个抽象方法，`reflect()` 继承默认 |
 | `skillopt/envs/interviewer/skills/initial.md` | SKILL_template.md 原文 + 自定义标识 tag |
-| `skillopt/envs/interviewer/prompts/analyst_error.md`、`analyst_success.md` | 带软约束的分析师 prompt（约束编辑落在评分细则行） |
+| `skillopt/envs/interviewer/prompts/analyst_error.md`、`analyst_success.md` | 带软约束的分析师 prompt（编辑落在评分细则行；success 侧含"中间区=部分正确、不强化中间区"的说明） |
 | `configs/interviewer/default.yaml` | `env.name: interviewer`，Patch 模式，小 batch |
 | 修改 `scripts/train.py`、`scripts/eval_only.py` | 各注册一行 `_ENV_REGISTRY["interviewer"] = ...`（包 try/except） |
 
@@ -240,7 +261,7 @@ result 列 ─────────────► ground_truth/answers = "�
 **接口契约**（易踩坑）：
 
 - item 必须有 `"id"`（str）
-- `rollout()` 返回每条必须有 `"id"`、`"hard"`（0/1）、`"soft"`（0~1 float）
+- `rollout()` 返回每条必须有 `"id"`、`"hard"`（0~1 连续，平滑奖励）、`"soft"`（与 hard 同值）
 - adapter `__init__` 形参名与配置扁平化后的键对齐（`get_adapter` 按签名注入）
 - `env.name` 必须等于注册名 `interviewer`
 - **必须写 `predictions/<id>/conversation.json`**，否则反思阶段 `skip_no_patches`，技能学不到东西
@@ -274,6 +295,9 @@ optimizer:
   use_slow_update: false
   use_meta_skill: false
 
+evaluation:
+  gate_metric: hard
+
 env:
   name: interviewer
   skill_init: skillopt/envs/interviewer/skills/initial.md
@@ -290,6 +314,7 @@ env:
 - `batch_size: 8`：每个 epoch 约 4~5 个 step（34 / 8）
 - `learning_rate: 2`：样本少，编辑预算调小减少无效编辑
 - `minibatch_size: 4`：样本少，反思 minibatch 相应调小
+- `evaluation.gate_metric: hard`：统一 hard 奖励，soft==hard，无需 mixed
 - `max_completion_tokens: 4096`：粤语 context 最长 2848 字符 + 技能文本，够用
 - 调试阶段用 `limit: 10`、`batch_size: 4`
 
@@ -343,7 +368,8 @@ python scripts/eval_only.py \
 ## 7. 风险提示
 
 - **全量共用 → 评估乐观**：val/test 与 train 同分布，训练中 gate/selection 与最终评估都是"见过的样本"，指标偏记忆化、无泛化信号；作为试点可接受，后续用新增数据（或切回 `--split-method stratified`）做真实评估
-- **标签偏斜**：通过 24 / 不通過 10；全量共用下训练与评估分布一致，偏斜影响主要在基线统计口径（例如全猜「通过」的基线 hard≈0.71）
+- **标签偏斜**：通过 24 / 不通過 10；全量共用下训练与评估分布一致，偏斜影响主要在基线统计口径（全猜高分的基线 hard≈0.71，全猜中间区为 0.3）
+- **中间区被归入 success 组**：`hard=0.3` 使中间区轨迹进入反思的成功组，`analyst_success.md` 已加入"部分正确不强化"说明；若训练后技能出现"倾向给中间分"的倾向，需检查并强化该说明
 - **jd 单一**：技能会是「香港保安员招聘评估」的专项技能，泛化有限
 - **软约束强度有限**：固定区（表头/区间表/岗位要求）无法机制级禁止修改，个别编辑可能落在固定区；可接受，如频率过高再启用 2.4 增强
 - **Patch 模式残余风险**：多步编辑可能把规则行改成非法 markdown 行；分析师 prompt 约束可覆盖大部分场景，若发现可再补"应用后格式校验"回调
