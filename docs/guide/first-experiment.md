@@ -124,6 +124,7 @@ Prefer a graphical interface? Launch the WebUI:
 ```bash
 pip install -e ".[webui]"
 python -m skillopt_webui.app
+NO_PROXY=localhost,127.0.0.1,::1 python -m skillopt_webui.app
 ```
 
 Then open `http://localhost:7860` in your browser to configure parameters and

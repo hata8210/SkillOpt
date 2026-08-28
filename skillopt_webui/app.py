@@ -647,6 +647,14 @@ def main():
                         help="Server host. Use 0.0.0.0 for public access.")
     args = parser.parse_args()
 
+    # Gradio's launch() health-checks http://localhost:<port>/gradio_api/startup-events
+    # via httpx, which honors HTTP(S)_PROXY env vars. Ensure localhost connections
+    # bypass any configured proxy, otherwise the check fails with a 502.
+    localhost_bypass = "localhost,127.0.0.1,::1"
+    for key in ("no_proxy", "NO_PROXY"):
+        existing = os.environ.get(key, "")
+        os.environ[key] = localhost_bypass if not existing else f"{localhost_bypass},{existing}"
+
     app = build_ui()
     app.launch(
         server_name=args.host,
