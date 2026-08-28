@@ -1,0 +1,15 @@
+{
+  "source_manifest_dir": "/home/hata_ros/apps/gemini/SkillOpt/data/searchqa_id_split",
+  "source_dataset": "lucadiliello/searchqa (fastparquet fallback)",
+  "counts": {
+    "train": 400,
+    "val": 200,
+    "test": 1400
+  },
+  "item_fields": [
+    "id",
+    "question",
+    "context",
+    "answers"
+  ]
+}

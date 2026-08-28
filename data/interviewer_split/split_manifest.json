@@ -1,0 +1,23 @@
+{
+  "source_csv": "../interviewer_data/data.csv",
+  "split_method": "full",
+  "split_seed": 42,
+  "counts": {
+    "train": 34,
+    "val": 34,
+    "test": 34
+  },
+  "item_fields": [
+    "id",
+    "candidate",
+    "age",
+    "sex",
+    "jd",
+    "context",
+    "question",
+    "answers",
+    "ground_truth",
+    "task_type",
+    "split"
+  ]
+}

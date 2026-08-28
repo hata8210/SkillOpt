@@ -100,6 +100,11 @@ def _register_builtins() -> None:
         _ENV_REGISTRY["swebench"] = SWEBenchAdapter
     except ImportError:
         pass
+    try:
+        from skillopt.envs.interviewer.adapter import InterviewerAdapter
+        _ENV_REGISTRY["interviewer"] = InterviewerAdapter
+    except ImportError:
+        pass
 
 
 def get_adapter(cfg: dict):
