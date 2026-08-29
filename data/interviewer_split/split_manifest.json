@@ -1,11 +1,11 @@
 {
-  "source_csv": "../interviewer_data/data.csv",
+  "source_csv": "../interviewer_data/data2.csv",
   "split_method": "full",
   "split_seed": 42,
   "counts": {
-    "train": 34,
-    "val": 34,
-    "test": 34
+    "train": 3,
+    "val": 3,
+    "test": 3
   },
   "item_fields": [
     "id",

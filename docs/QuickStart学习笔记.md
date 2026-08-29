@@ -86,7 +86,7 @@ export OPENAI_COMPATIBLE_MODEL="${DEEPSEEK_MODEL:-deepseek-chat}"
 2. **HF 数据集下载卡住**：`materialize_searchqa.py` 要下载 `lucadiliello/searchqa`（train parquet ≈ 284MB、validation ≈ 41MB），下载到一半停滞。解决：用 `curl -C -` 断点续传 + `sha256sum` 校验，再手动放到 HF 缓存目录（blobs + snapshot 软链）。
 3. **pyarrow SIGILL（关键坑）**：本机 VM 的 CPU 缺 AVX/BMI2 指令，pyarrow 读 parquet 的嵌套列（`answers`/`labels`）时在 `DefLevelsToBitmapBmi2WithRepeatedParent` 内核崩溃（`vmovq` 指令非法），pyarrow 12~25 全崩。解决：改用 **fastparquet** 读 parquet，写了一个等价物化脚本（逻辑同 `materialize_searchqa.py`，输出格式一致），生成 `data/searchqa_split/{train,val,test}/items.json`。
 4. **config 的 env 段被删（仓库 bug）**：`skillopt/config.py` 里扁平键 `env`（来自 `env.name`）与结构化 section 名 `env` 同名冲突，`_resolve_layer_format_duplicates` / `_drop_base_keys_overridden_by_layer` 把整个 `env:` 配置段删掉（17b4823 引入的回归），导致所有带 `env:` 的结构化配置加载后 env 丢失。已修复（跳过对 dict 型 section 的删除）并加回归测试，41 个测试通过。
-5. **DEEPSEEK 环境变量会话中途消失**：父 shell 的快照轮换导致变量丢失，训练报 401 `Authentication Fails`。解决：把凭据**直接写进 `.env`**（自包含，不依赖父 shell；`.env` 已在 `.gitignore` 中）。
+5. **DEEPSEEK 环境变量会话中途消失 / 忘记 source**：父 shell 的快照轮换导致变量丢失，训练报 401 `Authentication Fails`；`openai_compatible` 后端在模块导入时读 env，key 缺失会兜底成占位符 `dummy` 并打到默认 OpenAI 端点，epoch 末 slow update 表现为 `Incorrect API key provided: dummy` + `[slow update] no guidance produced`。解决：把凭据**直接写进 `.env`**（自包含，不依赖父 shell；`.env` 已在 `.gitignore` 中），每次运行前先 `set -a; source .env; set +a`。
 6. **训练中断**：4-epoch 训练在 step 15/40 时会话断开（当时最佳 selection 0.54）。按需求改为 **epochs=1** 重跑（`train.num_epochs=1`，共 10 步），约 1 小时完成。
 
 ### 最终结果

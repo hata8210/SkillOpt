@@ -9,7 +9,7 @@
 
 | 文件 | 内容说明 |
 |---|---|
-| `scripts/materialize_interviewer.py` | 物化脚本：读 `data/interviewer_data/data.csv`（34 条）→ 生成 `data/interviewer_split/{train,val,test}/items.json` + `split_manifest.json`。默认 `--split-method full`（三个 split 全量 34 条），支持 `stratified`（按 result 分层 20/7/7，seed=42）。核心函数：`load_items` / `_normalize_row` / `_build_question` / `_stratified_split` / `write_split` |
+| `scripts/materialize_interviewer.py` | 物化脚本：源 CSV 路径由必填参数 `--csv` 从外部传入（如 `data/interviewer_data/data.csv`，34 条）→ 生成 `data/interviewer_split/{train,val,test}/items.json` + `split_manifest.json`（manifest 的 `source_csv` 记录实际传入的 CSV 相对路径）。默认 `--split-method full`（三个 split 全量 34 条），支持 `stratified`（按 result 分层 20/7/7，seed=42）。核心函数：`load_items` / `_normalize_row` / `_build_question` / `_stratified_split` / `write_split` |
 | `skillopt/envs/interviewer/__init__.py` | 空包声明 |
 | `skillopt/envs/interviewer/dataloader.py` | `InterviewerDataLoader(SplitDataLoader)`，只实现 `load_split_items()` 读 split 目录下第一个 `.json` |
 | `skillopt/envs/interviewer/evaluator.py` | 打分核心：`parse_score`（解析 `<score>`）、`score_to_zone`（≤4 reject / (4,6.5) middle / ≥6.5 hire）、`gold_to_zone`（通过→hire、不通過→reject）、`score_episode`（返回 `(hard, soft)`，soft==hard：命中 1.0、中间区 0.3、反区/解析失败 0.0，**无分数平滑**） |
@@ -37,6 +37,7 @@
 ## 四、实现过程中的修复
 
 - `skillopt/envs/interviewer/rollout.py` `run_batch`：初版并发循环用 `while done:` 在全部 future 完成后仍会进入循环导致 `KeyError`（冒烟测试暴露）；改为标准 `pending_futs -= done` 写法后修复
+- `outputs/interviewer_blank2` 训练中 slow update 报 401 `Incorrect API key provided: dummy`：`openai_compatible` 后端在模块导入时读 `OPENAI_COMPATIBLE_*`，进程 env 未加载时 base_url 兜底到 `https://api.openai.com/v1`、api_key 兜底成占位符 `dummy`，optimizer 调用全部失败（slow update 被吞掉并提示 `no guidance produced`）。修复：运行前 `set -a; source .env; set +a`（`.env` 里已写 DeepSeek 的 `OPENAI_COMPATIBLE_*`）
 
 ## 五、本地验证结果（均通过）
 

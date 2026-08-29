@@ -254,7 +254,12 @@ use unless `COPILOT_EXEC_ALLOW_ALL_TOOLS` is set.
 ### Three OpenAI-compatible paths
 
 - Research, generic provider: select `openai_compatible` and use
-  `OPENAI_COMPATIBLE_*`.
+  `OPENAI_COMPATIBLE_*`. Export these variables **before** launching the
+  process — the backend captures its config (base URL, API key, model) at
+  import time. If the key is missing it falls back to the placeholder `dummy`
+  against the default `https://api.openai.com/v1`, producing a confusing 401
+  (`Incorrect API key provided: dummy`); source `.env` first with
+  `set -a; source .env; set +a`.
 - Research, Azure-family compatibility mode: keep `openai_chat`, set
   `AZURE_OPENAI_AUTH_MODE=openai_compatible`, and use `AZURE_OPENAI_*`.
 - SkillOpt-Sleep: run with `--backend azure_openai` and use the same

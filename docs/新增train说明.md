@@ -144,6 +144,8 @@ else:
 
 本 demo 实际配置：
 
+> **运行前必须先加载环境变量**：`openai_compatible` 后端在模块导入时读取 `OPENAI_COMPATIBLE_*`，务必先 `set -a; source .env; set +a` 再启动训练/评估。漏掉的话 API key 会兜底成占位符 `dummy`、base_url 落到 `https://api.openai.com/v1`，optimizer 调用（含每个 epoch 末的 slow update）会全部 401：`Incorrect API key provided: dummy`，slow update 阶段显示 `[slow update] no guidance produced`。
+
 ```bash
 python scripts/train.py \
   --config configs/searchqa/default.yaml \
@@ -232,4 +234,5 @@ python scripts/eval_only.py \
 
 - **pyarrow SIGILL**：VM CPU 缺 AVX/BMI2 指令，pyarrow 读 parquet 嵌套列（`answers`）崩溃；用 `fastparquet` 读取生成同格式 split 可绕过
 - **DEEPSEEK 环境变量丢失**：父 shell 变量会话中途消失导致 401；把凭据写进 `.env`（自包含，已 gitignore）解决
+- **忘记 source `.env` 导致 401**：`openai_compatible` 后端 import 时读取 env，key 缺失兜底为 `dummy` 并向默认 OpenAI 端点发请求（slow update/反思报 `Incorrect API key provided: dummy`）；每次运行前 `set -a; source .env; set +a`
 - **`env` 配置段被删**：`skillopt/config.py` 的扁平键 `env` 与 section `env` 同名冲突（17b4823 引入的回归），已修复并加回归测试

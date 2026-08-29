@@ -211,7 +211,7 @@ result 列 ─────────────► ground_truth/answers = "�
 
 写 `scripts/materialize_interviewer.py`（仿 `materialize_searchqa.py`）：
 
-1. 读取 `data/interviewer_data/data.csv`，跳过全空行
+1. 读取 CSV（路径通过外部参数 `--csv` 传入，默认用法：`data/interviewer_data/data.csv`），跳过全空行
 2. 规范化 item：
 
 ```json
@@ -245,7 +245,7 @@ result 列 ─────────────► ground_truth/answers = "�
 
 | 文件 | 内容 |
 |---|---|
-| `scripts/materialize_interviewer.py` | CSV → split 数据（默认全量 34/34/34，可选 `--split-method stratified`） |
+| `scripts/materialize_interviewer.py` | CSV → split 数据（`--csv` 必填传入源 CSV；默认全量 34/34/34，可选 `--split-method stratified`） |
 | `skillopt/envs/interviewer/__init__.py` | 空包 |
 | `skillopt/envs/interviewer/dataloader.py` | `InterviewerDataLoader(SplitDataLoader)`，只实现 `load_split_items()` |
 | `skillopt/envs/interviewer/evaluator.py` | `<score>` 解析、区间判定、hard/soft 打分 |
@@ -325,7 +325,7 @@ env:
 ### 6.1 数据物化
 
 ```bash
-python scripts/materialize_interviewer.py
+python scripts/materialize_interviewer.py --csv data/interviewer_data/data.csv
 ```
 
 核对：train/val/test 数量均为 34（全量共用），标签分布均为 通过 24 / 不通過 10。

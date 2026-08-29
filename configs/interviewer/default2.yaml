@@ -1,0 +1,37 @@
+_base_: ../_base_/default.yaml
+
+model:
+  reasoning_effort: medium
+
+train:
+  train_size: 3
+  batch_size: 3
+  accumulation: 1
+  num_epochs: 10
+
+gradient:
+  minibatch_size: 3
+  merge_batch_size: 3
+  analyst_workers: 3
+
+optimizer:
+  learning_rate: 2
+  min_learning_rate: 1
+  lr_scheduler: constant
+  skill_update_mode: patch
+  use_slow_update: true
+  use_meta_skill: true
+
+evaluation:
+  gate_metric: hard
+
+env:
+  name: interviewer
+  skill_init: skillopt/envs/interviewer/skills/initial_blank.md
+  split_mode: split_dir
+  split_dir: data/interviewer_split
+  data_path: ""
+  split_output_dir: ""
+  max_completion_tokens: 4096
+  workers: 3
+  limit: 0

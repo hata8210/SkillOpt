@@ -1,8 +1,8 @@
 """Materialize the interviewer hire-decision dataset into SkillOpt split dirs.
 
-Reads ``data/interviewer_data/data.csv`` (34 valid rows) and writes
-``data/interviewer_split/{train,val,test}/items.json`` plus
-``split_manifest.json``.
+Reads a CSV supplied via ``--csv`` (e.g. ``data/interviewer_data/data.csv``,
+34 valid rows) and writes ``data/interviewer_split/{train,val,test}/items.json``
+plus ``split_manifest.json``.
 
 Split strategies
 ----------------
@@ -21,7 +21,6 @@ from pathlib import Path
 
 import pandas as pd
 
-CSV_PATH = "data/interviewer_data/data.csv"
 DEFAULT_SPLIT_DIR = "data/interviewer_split"
 SPLIT_NAMES = ("train", "val", "test")
 
@@ -101,7 +100,7 @@ def _stratified_split(items: list[dict], sizes: tuple[int, int, int], seed: int)
     }
 
 
-def write_split(out_dir: str, items: list[dict], method: str, seed: int, sizes: tuple[int, int, int]) -> dict[str, int]:
+def write_split(csv_path: str, out_dir: str, items: list[dict], method: str, seed: int, sizes: tuple[int, int, int]) -> dict[str, int]:
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
 
@@ -123,7 +122,7 @@ def write_split(out_dir: str, items: list[dict], method: str, seed: int, sizes: 
         counts[name] = len(split_items)
 
     manifest = {
-        "source_csv": os.path.relpath(CSV_PATH, out_dir),
+        "source_csv": os.path.relpath(csv_path, out_dir),
         "split_method": method,
         "split_seed": seed,
         "counts": counts,
@@ -139,7 +138,7 @@ def write_split(out_dir: str, items: list[dict], method: str, seed: int, sizes: 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--csv", default=CSV_PATH)
+    parser.add_argument("--csv", required=True, help="Path to the interviewer dataset CSV.")
     parser.add_argument("--split-dir", default=DEFAULT_SPLIT_DIR)
     parser.add_argument("--split-method", choices=("full", "stratified"), default="full")
     parser.add_argument("--seed", type=int, default=42)
@@ -149,7 +148,7 @@ def main() -> None:
     args = parser.parse_args()
 
     items = load_items(args.csv)
-    counts = write_split(args.split_dir, items, args.split_method, args.seed, (args.train, args.val, args.test))
+    counts = write_split(args.csv, args.split_dir, items, args.split_method, args.seed, (args.train, args.val, args.test))
 
     label_counts = {k: sum(1 for it in items if it["ground_truth"] in PASS_LABELS) for k in ("通过",)}
     print(f"loaded {len(items)} items from {args.csv}  (通过={label_counts['通过']} 不通過={len(items) - label_counts['通过']})")
