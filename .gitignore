@@ -6,7 +6,7 @@ dist/
 site/
 
 outputs/*
-!outputs/interviewer*/
+!outputs/interviewer*
 !outputs/interviewer*/**
 
 logs/

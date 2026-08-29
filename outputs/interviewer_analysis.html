@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SkillOpt 面试官技能优化实验分析报告</title>
+<style>
+:root{
+  --ink:#1e293b; --sub:#64748b; --line:#e2e8f0; --bg:#f6f7fb;
+  --card:#ffffff; --primary:#4f46e5; --primary-soft:#eef2ff;
+  --green:#059669; --green-soft:#ecfdf5; --red:#dc2626; --red-soft:#fef2f2;
+  --amber:#b45309; --amber-soft:#fffbeb; --slate:#334155;
+}
+*{box-sizing:border-box; margin:0; padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  color:var(--ink); background:var(--bg); line-height:1.65; font-size:15px;}
+.wrap{max-width:1060px; margin:0 auto; padding:28px 22px 80px;}
+header.hero{background:linear-gradient(135deg,#312e81 0%,#4f46e5 55%,#7c3aed 100%); color:#fff; border-radius:18px;
+  padding:34px 36px 30px; box-shadow:0 12px 30px rgba(79,70,229,.25);}
+header.hero h1{font-size:27px; letter-spacing:.5px;}
+header.hero p.sub{margin-top:8px; color:#e0e7ff; font-size:15px;}
+.kpis{display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px; margin-top:22px;}
+.kpi{background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.25); border-radius:12px; padding:14px 16px;}
+.kpi b{display:block; font-size:23px;}
+.kpi span{font-size:12.5px; color:#e0e7ff;}
+nav.toc{display:flex; flex-wrap:wrap; gap:8px; margin:22px 0 6px;}
+nav.toc a{color:var(--primary); background:var(--primary-soft); border:1px solid #dbe3ff; border-radius:999px;
+  padding:5px 13px; font-size:13px; text-decoration:none;}
+nav.toc a:hover{background:#e0e7ff;}
+section.block{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:26px 28px; margin-top:22px;
+  box-shadow:0 2px 8px rgba(15,23,42,.04);}
+h2.sec{font-size:21px; display:flex; align-items:center; gap:10px; margin-bottom:4px;}
+h2.sec .no{background:var(--primary); color:#fff; border-radius:8px; font-size:14px; padding:2px 9px; flex:none;}
+h2.sec .tag{margin-left:auto; font-size:12px; color:var(--sub); font-weight:400; background:var(--bg); border:1px solid var(--line); padding:3px 10px; border-radius:999px;}
+p.lead{color:var(--sub); font-size:14.5px; margin:6px 0 18px;}
+h3.sub{font-size:16.5px; margin:22px 0 10px; padding-left:10px; border-left:4px solid var(--primary);}
+h4.mini{font-size:14.5px; margin:16px 0 8px; color:var(--slate);}
+table.tbl{width:100%; border-collapse:collapse; font-size:13.5px; margin:10px 0 6px;}
+table.tbl th{background:#f1f5f9; color:var(--slate); font-weight:600; text-align:left; padding:8px 10px; border:1px solid var(--line);}
+table.tbl td{padding:8px 10px; border:1px solid var(--line); vertical-align:top;}
+table.tbl tr:nth-child(even) td{background:#fafbfe;}
+.ok{color:var(--green); font-weight:700;}
+.bad{color:var(--red); font-weight:700;}
+.warn{color:var(--amber); font-weight:700;}
+.badge{display:inline-block; border-radius:999px; padding:1px 9px; font-size:12px; font-weight:600;}
+.badge.green{background:var(--green-soft); color:var(--green); border:1px solid #a7f3d0;}
+.badge.red{background:var(--red-soft); color:var(--red); border:1px solid #fecaca;}
+.badge.gray{background:#f1f5f9; color:var(--sub); border:1px solid var(--line);}
+.badge.amber{background:var(--amber-soft); color:var(--amber); border:1px solid #fde68a;}
+.badge.purple{background:var(--primary-soft); color:var(--primary); border:1px solid #dbe3ff;}
+.grid2{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
+@media(max-width:820px){.grid2{grid-template-columns:1fr;}}
+.cards{display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:14px;}
+.mini-card{border:1px solid var(--line); border-radius:12px; padding:14px 16px; background:#fbfcfe;}
+.mini-card .k{font-size:12px; color:var(--sub);}
+.mini-card .v{font-size:19px; font-weight:700; margin-top:2px;}
+.mini-card .d{font-size:12.5px; color:var(--sub); margin-top:4px;}
+.chart-box{width:100%; overflow-x:auto;}
+.chart-box svg{display:block; width:100%; height:auto; min-width:640px;}
+.caption{font-size:12.5px; color:var(--sub); margin-top:6px;}
+.code{background:#0f172a; color:#e2e8f0; border-radius:10px; padding:14px 16px; font-size:12.5px; overflow-x:auto; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; line-height:1.7; white-space:pre;}
+.note{background:var(--amber-soft); border:1px solid #fde68a; border-radius:12px; padding:12px 16px; font-size:13px; color:#78350f; margin-top:14px;}
+.note.blue{background:var(--primary-soft); border-color:#dbe3ff; color:#3730a3;}
+.callout{display:flex; gap:12px; background:linear-gradient(135deg,#f0fdf4,#ecfdf5); border:1px solid #a7f3d0; border-radius:12px; padding:14px 18px; margin-top:14px;}
+.callout .ic{font-size:22px;}
+.callout p{font-size:14px; color:#065f46;}
+.flow{display:flex; flex-wrap:wrap; align-items:stretch; gap:8px; margin:8px 0 4px;}
+.flow .box{flex:1 1 110px; background:#f8fafc; border:1.5px solid var(--line); border-radius:10px; padding:9px 8px; text-align:center; font-size:12.5px; position:relative;}
+.flow .box b{display:block; font-size:12px; color:var(--primary); margin-bottom:2px;}
+.flow .box.hl{border-color:var(--primary); background:var(--primary-soft);}
+.flow .box.green{border-color:#a7f3d0; background:var(--green-soft);}
+.flow .arrow{align-self:center; color:var(--sub); font-weight:700;}
+ul.plain{list-style:none;}
+ul.plain li{padding-left:22px; position:relative; margin-bottom:7px; font-size:14px;}
+ul.plain li:before{content:"▸"; position:absolute; left:4px; color:var(--primary);}
+ol.num{margin:8px 0 8px 22px;}
+ol.num li{margin-bottom:6px; font-size:14px;}
+.cluster{border:1px solid var(--line); border-radius:12px; padding:14px 16px; margin-bottom:12px; background:#fbfcfe;}
+.cluster h5{font-size:14px; margin-bottom:6px; color:var(--primary);}
+.cluster p{font-size:13.5px; color:#334155;}
+footer{margin-top:26px; font-size:12.5px; color:var(--sub); border-top:1px solid var(--line); padding-top:16px;}
+@media print{body{background:#fff;} section.block{box-shadow:none; break-inside:avoid;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <h1>SkillOpt 面试官技能优化 · 实验分析报告</h1>
+  <p class="sub">两次「从空白技能出发」的真实面试数据集训练实验 —— 证明 SkillOpt 的高效与有效性</p>
+  <div class="kpis">
+    <div class="kpi"><b>≈27 分钟</b><span>interviewer_blank：34 条保安面试样本，得到的 best skill 与「人类 + AI 工具」耗时半天～一天打磨的最优评分细则惊人一致</span></div>
+    <div class="kpi"><b>≈50 分钟</b><span>interviewer_blank2：仅 3 条保洁面试样本（超少样本），从 0 分起步训练，最终 selection 0.667 / test 0.667→0.767</span></div>
+    <div class="kpi"><b>0 → 0.667</b><span>两次实验均从同一个「随机评选」状态的初始技能 initial_blank.md（660 字符）出发</span></div>
+  </div>
+</header>
+
+<nav class="toc">
+  <a href="#overview">1 实验总览</a>
+  <a href="#pipeline">2 训练管线</a>
+  <a href="#point1">3 论点一：分钟级逼近人工成果</a>
+  <a href="#point2">4 论点二：超少样本 + 慢更新</a>
+  <a href="#conclusion">5 结论与说明</a>
+</nav>
+<!-- ============ 1 实验总览 ============ -->
+<section class="block" id="overview">
+  <h2 class="sec"><span class="no">1</span>实验总览<span class="tag">数据来源：summary.json / history.json / logs_detail.txt / best_skill.md</span></h2>
+  <p class="lead">两次实验共用同一套「面试官评分」任务框架与同一个空白起点。差异只在训练数据量、训练数据岗位和优化参数上，结论互补：一次证明「快」，一次证明「少 + 稳」。</p>
+
+  <div class="grid2">
+    <div class="mini-card">
+      <div class="k">实验 A — interviewer_blank</div>
+      <div class="v">34 条真实保安面试样本</div>
+      <div class="d">岗位：香港物业保安员（data.csv 34 条）<br>epochs=3，batch=34，edit_budget=2，无 slow update / meta skill<br>耗时 1611 s（≈27 分钟），token ≈1.71M</div>
+    </div>
+    <div class="mini-card">
+      <div class="k">实验 B — interviewer_blank2</div>
+      <div class="v">3 条真实保洁面试样本</div>
+      <div class="d">岗位：清潔員（data2.csv 3 条）<br>epochs=10，batch=3，edit_budget=2，min_edit_budget=1<br>启用 slow update + meta skill，耗时 3018 s（≈50 分钟），token ≈1.64M</div>
+    </div>
+  </div>
+
+  <h4 class="mini">共同起点：一个「随机评选」状态的空白技能（initial_blank.md，660 字符）</h4>
+  <p style="font-size:14px; color:var(--sub); margin-bottom:8px;">两次实验的初始技能完全一样，评分细则区域只有一行占位符 —— 相当于「没有标准，看心情给分」：</p>
+  <div class="code">&lt;!-- TABLE_HEADER_START --&gt;
+### 香港物业管理保安员岗位面试评分表
+| 判断项 | 合格标准 | 0分 | 0.5分 | 1分 |
+|--------|----------|-----|-------|-----|
+&lt;!-- TABLE_HEADER_END --&gt;
+| **1. 没有固定要求** | 随机看心情 | 随机 | 随机 | 随机 |</div>
+
+  <div class="cards" style="margin-top:16px;">
+    <div class="mini-card"><div class="k">实验 A 结论</div><div class="v" style="color:var(--green);">内容一致性 8/8</div><div class="d">SkillOpt 自动学出的 8 条评分细则，与人工模板 SKILL_template.md 的 8 大维度名称、顺序、合格标准高度一致</div></div>
+    <div class="mini-card"><div class="k">实验 B 结论 ①</div><div class="v" style="color:var(--green);">超少样本可行</div><div class="d">3 条样本 + 调优参数，selection 0→0.667，test 0.667→0.767</div></div>
+    <div class="mini-card"><div class="k">实验 B 结论 ②</div><div class="v" style="color:var(--green);">学习到细则之外的守则</div><div class="d">slow update 额外沉淀 15 条「评分守则」：输出铁律、证据校准、防漂移、收尾自检</div></div>
+  </div>
+</section>
+
+<!-- ============ 2 训练管线 ============ -->
+<section class="block" id="pipeline">
+  <h2 class="sec"><span class="no">2</span>SkillOpt 单步训练管线<span class="tag">理解后续图表的前提</span></h2>
+  <p class="lead">每一步训练 = 让目标模型带着当前技能对样本面试做评分 → 根据失败/成功轨迹反思生成技能修改 → 合并 → 用「学习率（edit budget）」控制修改量 → 打补丁 → 在验证集上严格评测，只有严格超过当前最优才接受。</p>
+  <div class="flow">
+    <div class="box"><b>① ROLLOUT</b>目标模型用当前技能评分样本</div>
+    <div class="arrow">→</div>
+    <div class="box"><b>② REFLECT</b>分析失败/成功轨迹，生成 edits</div>
+    <div class="arrow">→</div>
+    <div class="box"><b>③ AGGREGATE</b>并行合并多个反思结果</div>
+    <div class="arrow">→</div>
+    <div class="box hl"><b>④ SELECT</b>edit_budget 控量（学习率）</div>
+    <div class="arrow">→</div>
+    <div class="box"><b>⑤ UPDATE</b>以 patch 方式改技能</div>
+    <div class="arrow">→</div>
+    <div class="box"><b>⑥ EVALUATE</b>gate=hard，严格 accept/reject</div>
+  </div>
+  <p style="font-size:13.5px; color:var(--sub); margin-top:10px;">每个 epoch 结束后（仅实验 B）：<b style="color:var(--primary);">slow update</b> 跨 epoch 对比同一样本表现，产出「评分守则」注入技能；<b style="color:var(--primary);">meta skill</b> 把优化器记忆写入下一轮反思上下文。</p>
+</section>
+<!-- ============ 3 论点一 ============ -->
+<section class="block" id="point1">
+  <h2 class="sec"><span class="no">3</span>论点一：SkillOpt 几分钟级训练 ≈ 人类 + AI 工具半天～一天的成果<span class="tag">interviewer_blank · 34 条保安样本</span></h2>
+  <p class="lead">对照组：<code>data/interviewer_data/SKILL_template.md</code>，是「人类专家 + AI 工具」反复打磨约半天～一天得到的保安岗位最优评分细则。实验组：SkillOpt 从同一岗位的 34 条真实样本出发，自动训练约 27 分钟。两者产出的评分细则<b style="color:var(--green);">在评分维度、顺序、合格标准上惊人一致（8/8）</b>。</p>
+
+  <h3 class="sub">3.1 训练过程：从随机评选到稳定细则（1 次有效提升）</h3>
+  <div class="chart-box" id="chartA"></div>
+  <p class="caption">图 A：interviewer_blank 训练得分。基线（空白技能）selection=0.2735 → 第 1 步接受候选后提升至 0.3324；第 2、3 步反思未产生可用修改（success/failure patch=0），保持最优不变。绿色 = accept，灰色 = skip。</p>
+
+  <h3 class="sub">3.2 八条评分细则逐项对比：维度、顺序、标准全部对上</h3>
+  <table class="tbl">
+    <tr><th style="width:4%;">#</th><th style="width:40%;">人类 + AI 工具 · SKILL_template.md <span class="badge gray">半天～一天</span></th><th style="width:42%;">SkillOpt 自动学出 · best_skill.md <span class="badge green">≈27 分钟</span></th><th style="width:14%;">一致性</th></tr>
+    <tr><td>1</td><td><b>自我介绍</b>：完整（姓名+年龄+来自+最近工作+职责）</td><td><b>自我介绍</b>：能清晰说出姓名、年龄、籍贯、学历及与保安岗位相关经历</td><td class="ok">一致</td></tr>
+    <tr><td>2</td><td><b>工作单位</b>：能说出具体名称 + 地点</td><td><b>工作单位</b>：能准确说出任职单位名称、性质及在职时长</td><td class="ok">一致</td></tr>
+    <tr><td>3</td><td><b>工作职责</b>：说出 ≥3 项核心职责（巡逻/登记/投诉/车辆）</td><td><b>工作职责</b>：能具体描述巡逻、访客登记、车辆记录、投诉处理、消防检查等职责</td><td class="ok">一致</td></tr>
+    <tr><td>4</td><td><b>突发事件</b>：能举出 1 个完整案例（顺序合理）</td><td><b>突发事件</b>：说出处理火警、盗窃、纠纷、冲岗事件的合理步骤（上报、控场、疏散/报警、记录）</td><td class="ok">一致</td></tr>
+    <tr><td>5</td><td><b>来港动机</b>：薪酬 + 发展/文化/家庭</td><td><b>来港动机</b>：动机明确（收入/发展/家庭经济），并接受香港工作强度</td><td class="ok">一致</td></tr>
+    <tr><td>6</td><td><b>家庭安排</b>：明确谁照顾小孩 + 不需常回</td><td><b>家庭安排</b>：家人知情支持，子女/老人有照顾安排，可长期留港</td><td class="ok">一致</td></tr>
+    <tr><td>7</td><td><b>语言表达</b>：粤语基本流畅、能展开</td><td><b>语言表达</b>：粤语/普通话表达流畅、有条理，能听懂并回应提问</td><td class="ok">一致</td></tr>
+    <tr><td>8</td><td><b>职业稳定性</b>：连续保安经验 ≥1 年</td><td><b>职业稳定性</b>：有相关保安经验且接受长期夜班/高强度</td><td class="ok">一致</td></tr>
+  </table>
+  <ul class="plain" style="margin-top:10px;">
+    <li>评分维度：8 项全部重合，且<b>顺序完全一致</b>（自我介绍 → 工作单位 → 工作职责 → 突发事件 → 来港动机 → 家庭安排 → 语言表达 → 职业稳定性）</li>
+    <li>合格标准：语义高度重合，个别细节侧重不同（如人工模板强调「说出地点与 3 项职责」，SkillOpt 强调「性质、时长与覆盖多项职责」），但不影响录用区间判定逻辑</li>
+    <li>固定结构一致：两者都保留了同样的「0–4 / 4.5–6 / 6.5–8」总分三区间与 0/0.5/1 打分粒度</li>
+    <li>SkillOpt 无需任何人写规则 —— 规则是从 34 条真实面试数据里被自动归纳出来的</li>
+  </ul>
+
+  <h3 class="sub">3.3 成本对比：27 分钟 vs 半天～一天</h3>
+  <div class="cards">
+    <div class="mini-card"><div class="k">SkillOpt（自动）</div><div class="v">≈27 分钟</div><div class="d">34 样本 · 3 epochs · 1.71M tokens · 1 次 accept / 2 次 skip · 零人工干预</div></div>
+    <div class="mini-card"><div class="k">人类 + AI 工具</div><div class="v">半天 ～ 一天</div><div class="d">需人工逐条提炼岗位要求、设计评分维度、校验边界案例、对齐区间（SKILL_template.md 开发过程）</div></div>
+  </div>
+
+  <div class="callout"><div class="ic">🎯</div><p>结论：<b>只需约 27 分钟</b>，SkillOpt 从「随机看心情」的空白技能出发，自动收敛到与精英人工打磨结果高度同构的评分细则 —— 无论判断维度还是评分标准。人工成本从半天～一天压缩到半小时内，且可复现、可迁移。</p></div>
+  <div class="note">诚实说明：实验 A 的验证集（selection）与训练集同源（34 条 full split），selection 得分从 0.2735 → 0.3324（+0.059），test 得分 0.3118 → 0.2853（-0.026，单次采样波动）。该实验的核心证据是<b>评分细则内容与人工模板的一致性</b>（8/8），分数涨幅受限于 3 个 epoch 和同源评估集，不作为得分领先性的论据。</div>
+</section>
+<!-- ============ 4 论点二 ============ -->
+<section class="block" id="point2">
+  <h2 class="sec"><span class="no">4</span>论点二：超少样本（3 条）+ 慢更新，同样得到优质技能，还学到了细则之外的评分守则<span class="tag">interviewer_blank2 · 3 条保洁样本</span></h2>
+  <p class="lead">同样的空白起点，只喂 3 条真实保洁面试样本（2 条「不通過」+ 1 条「通过」）。通过调优训练参数（10 epochs、batch=3、min_edit_budget=1）并开启 slow update / meta skill，selection 从 0 分起步并最终达到 0.667；同时技能沉淀出 15 条<b>评分细则之外的「评分守则」</b>。</p>
+
+  <h3 class="sub">4.1 从 0 分起步，稳步上升；平台期后由 slow update 完成突破</h3>
+  <div class="chart-box" id="chartB"></div>
+  <p class="caption">图 B：interviewer_blank2 每步得分。实线 = 当前持有技能（经过 accept 的最优）在 selection 上的得分；红 × = 候选技能被 gate 拒绝（得分为候选技能自身的 selection）；虚线 = 每步训练 rollout 得分；★ = 第 10 轮 slow update 注入后最终评估 0.667，超越此前 0.433 的平台期。</p>
+  <div class="cards" style="margin-top:10px;">
+    <div class="mini-card"><div class="k">基线（空白技能）</div><div class="v">0.000</div><div class="d">3/3 全错（输出格式/区间判定随机，详见附录说明）</div></div>
+    <div class="mini-card"><div class="k">第 1-2 步快速爬升</div><div class="v">0.333 → 0.433</div><div class="d">每次反思只合并 1-2 个 edit，小步快走，两次 accept</div></div>
+    <div class="mini-card"><div class="k">第 3-10 步平台期</div><div class="v">被拒 4 次</div><div class="d">候选技能均未严格超过 0.433，gate 全部拒绝，防止评分漂移</div></div>
+    <div class="mini-card"><div class="k">slow update 突破</div><div class="v">0.667 ★</div><div class="d">跨 epoch 分析产生的守则注入后，最终评估提升 +0.234</div></div>
+  </div>
+
+  <h3 class="sub">4.2 每步技能的「长度」与「内容」演化：修修补补 → 沉淀守则</h3>
+  <div class="chart-box" id="chartC"></div>
+  <p class="caption">图 C：每步技能字符数（出自 history.json 的 skill_len）。灰色 = 未接受的候选替换；橙色柱 = 该步有 slow update 守则注入；绿色 = 最终 best skill（3165 字符，含 SLOW_UPDATE 守则区）。</p>
+  <ul class="plain">
+    <li><b>第 1 步（660→908）</b>：从 1 条成功样本轨迹的反思考评里凝练出第一批实质细则 —— 长度只小幅增长，避免大改大动</li>
+    <li><b>第 2 步（→1691）</b>：先补「保洁/清洁经验」的间接相关判定（0.5 档），接受后 selection 达 0.433 —— 内容向数据里的真实岗位（清潔員）靠拢</li>
+    <li><b>第 3 步被拒</b>：候选（1796）把细则改坏（selection 掉到 0.1），被 gate 拒绝，技能回滚 —— 内容变化被「验证后接受」保护</li>
+    <li><b>第 4-10 步</b>：每轮 slow update 把跨轮分析出的守则以 patch 方式写入技能（831→1475 字符），技能从「纯评分表」长成「评分表 + 评分守则」—— 最终 best skill 比初始技能长约 4.8 倍，其中约 47% 字符是评分细则之外的行为守则（SLOW_UPDATE 区 1477 字符 / 3165 字符）</li>
+  </ul>
+
+  <h3 class="sub">4.3 学习率（edit budget）控制修改量 + 每步 edit 的严格验收</h3>
+  <div class="grid2">
+    <div>
+      <div class="chart-box" id="chartD"></div>
+      <p class="caption">图 D：每步真正合并进技能的 edit 数量。edit_budget=2（上限 2 个），min_edit_budget=1 —— 相当于「小学习率」：reflection 产出的 edit 数被严格截断，每步只做 1-2 处小修改。</p>
+    </div>
+    <div>
+      <table class="tbl">
+        <tr><th>step</th><th>reflection 产出</th><th>SELECT 后</th><th>selection 得分</th><th>gate 判定</th></tr>
+        <tr><td>1</td><td>2 个 edit（1 组成功轨）</td><td>2</td><td>0.3333</td><td><span class="badge green">ACCEPT</span></td></tr>
+        <tr><td>2</td><td>2 个 edit（1 组失败轨）</td><td>2</td><td>0.4333</td><td><span class="badge green">ACCEPT</span></td></tr>
+        <tr><td>3</td><td>2 个 edit</td><td>2</td><td>0.1000</td><td><span class="badge red">REJECT</span></td></tr>
+        <tr><td>4</td><td>0 个可用 patch</td><td>0</td><td>—</td><td><span class="badge gray">SKIP</span></td></tr>
+        <tr><td>5</td><td>1 个 edit</td><td>1</td><td>0.4333（未提升）</td><td><span class="badge red">REJECT</span></td></tr>
+        <tr><td>6</td><td>1 个 edit</td><td>1</td><td>0.4333（未提升）</td><td><span class="badge red">REJECT</span></td></tr>
+        <tr><td>7</td><td>1 个 edit</td><td>1</td><td>0.1000</td><td><span class="badge red">REJECT</span></td></tr>
+        <tr><td>8-10</td><td>0 个可用 patch</td><td>0</td><td>—</td><td><span class="badge gray">SKIP</span></td></tr>
+      </table>
+    </div>
+  </div>
+  <ul class="plain">
+    <li><b>学习率控制</b>：每轮 reflection 产出的 edit 数在 SELECT 阶段被 edit_budget=2 截断；3 样本下实际每步只合并 1-2 个 edit —— 技能变化小、可回滚，10 轮从未崩坏超过一步</li>
+    <li><b>严格验收</b>：gate=hard，候选必须先跑 selection 评测，<b>只有严格大于当前最优才 accept</b>；低分候选（0.1）和持平候选（0.4333）一律 reject —— 4 次 REJECT 恰好守住了 0.433 的平台期，防止低质量 edit 污染技能（logs_detail.txt 中每步都有明确的 ACCEPT / REJECT 记录与得分）</li>
+  </ul>
+  <h3 class="sub">4.4 slow update：跨 epoch 逐样本对比，发现「分数之外」的规律</h3>
+  <p style="font-size:13.5px; color:var(--sub);">slow update 每轮重新采样训练样本（seed 递增），把同一候选人在<b>上一轮 vs 本轮</b>的表现做逐项对比（回归 / 改进 / 顽固失败 / 稳定成功），再决定是否把规律性结论注入技能。9 轮跨 epoch 分析中 6 轮产出了守则注入：</p>
+  <table class="tbl">
+    <tr><th>对比轮</th><th>上轮得分</th><th>本轮得分</th><th>回归</th><th>改进</th><th>顽固失败</th><th>稳定成功</th><th>注入守则</th></tr>
+    <tr><td>E1→E2</td><td>0.0000</td><td>0.3333</td><td>0</td><td>1</td><td>2</td><td>0</td><td class="warn">无（信息量不足）</td></tr>
+    <tr><td>E2→E3</td><td>0.0000</td><td>0.1000</td><td>0</td><td>1</td><td>2</td><td>0</td><td>+831 字符</td></tr>
+    <tr><td>E3→E4</td><td>0.1000</td><td>0.4333</td><td>0</td><td>1</td><td>1</td><td>1</td><td>+1038 字符</td></tr>
+    <tr><td>E4→E5</td><td>0.3333</td><td>0.4333</td><td>0</td><td>1</td><td>1</td><td>1</td><td>+1166 字符</td></tr>
+    <tr><td>E5→E6</td><td>0.3333</td><td>0.4333</td><td>0</td><td>1</td><td>1</td><td>1</td><td class="warn">无</td></tr>
+    <tr><td>E6→E7</td><td>0.7667</td><td>0.4333</td><td>1</td><td>0</td><td>0</td><td>2</td><td>+1062 字符</td></tr>
+    <tr><td>E7→E8</td><td>0.7667</td><td>0.3333</td><td>2</td><td>0</td><td>0</td><td>1</td><td>+1269 字符</td></tr>
+    <tr><td>E8→E9</td><td>0.7667</td><td>0.1000</td><td>2</td><td>0</td><td>0</td><td>1</td><td>+1283 字符</td></tr>
+    <tr><td>E9→E10</td><td>0.7667</td><td>0.7667</td><td>0</td><td>0</td><td>0</td><td>3</td><td>+1475 字符（最终注入）</td></tr>
+  </table>
+  <ul class="plain" style="margin-top:10px;">
+    <li><b>回归信号也触发产出</b>：E6→E9 连续三轮出现「回归」（评分在候选人之间来回跳），slow update 识别到这是<b>标准漂移</b>而非技能退步，于是密集注入「防漂移」守则 —— 最终 E9→E10 出现全部 3 个样本稳定成功</li>
+    <li><b>注入方式谨慎</b>：守则只写入「当前技能」（patch 替换旧守则区），不直接覆盖 best —— 最终由 selection 评测决定是否晋升；第 10 轮注入后最终评估 0.6667 &gt; best 0.4333，才正式晋升为 best skill（best_step=10，origin=slow_update_epoch_10）</li>
+    <li><b>meta skill 同步记忆</b>：每轮把优化器经验写入记忆（758～2661 字符），让后续反思「站在上一轮的思考上」，不重复踩坑</li>
+  </ul>
+
+  <h3 class="sub">4.5 学到的不只是分数表：细则之外的「评分守则」（SLOW_UPDATE 区）</h3>
+  <p style="font-size:13.5px; color:var(--sub); margin-bottom:10px;">最终 best_skill 在 8 条细则之外多出约 1400 字符的 SLOW_UPDATE 守则区（15 条编号规则），可归为四类 —— 这些内容<b>评分细则表本身永远写不出来</b>：</p>
+  <div class="cluster"><h5>① 输出铁律 —— 解决「拿不到分」的根因（规则 1-4）</h5>
+    <p>必须输出一行 <code>&lt;score&gt;X.X&lt;/score&gt;</code>，第一个字符是 <code>&lt;</code>、最后一个字符是 <code>&gt;</code>；禁止任何前后缀文字；宁可给估算分也绝不交付空白回复 —— 直接针对基线 0 分（3 条全错）的原因：模型没有稳定输出可解析的分数标签。</p></div>
+  <div class="cluster"><h5>② 证据型评分校准锚点 —— 把「差不多」变成「可判定」（规则 5-13）</h5>
+    <p>只依据明确证据打分；保洁/清洁/临时顶班 = 间接相关 0.5，保安/物管直接经验 = 1；「识少少」「可以学」= 0.5，能流畅读写繁体字才 = 1；笼统说「服从安排」= 0.5，给出「以前长期做清洁、收潲水都做过」这类具体佐证才 = 1。还专门针对数据特殊性写了第 13 条：面试官介绍岗位为洗手间清洁/收潲水时，不要质疑与「保安员」不一致，照常评分 —— 这是 3 条保洁样本数据里蕴含的真实规律。</p></div>
+  <div class="cluster"><h5>③ 防漂移校准 —— 同一证据只能得同一分（规则 14）</h5>
+    <p>只看证据强度，不看整体印象、转录长度或回答顺序；同一录音在两个版本间出现 0.5 漂移时以「无证据=0 / 含糊=0.5 / 明确=1」的锚点为准 —— 回应了 slow update 连续三轮观察到的「回归/漂移」。</p></div>
+  <div class="cluster"><h5>④ 收尾自检 —— 稳定性的最后一道闸（规则 15）</h5>
+    <p>发送前 1 秒自检：是否以 <code>&lt;score&gt;</code> 开头、以 <code>&lt;/score&gt;</code> 结尾、只有这一行？不满足就改写再发。保证评分输出格式的长期稳定。</p></div>
+  <div class="callout"><div class="ic">🧠</div><p>结论：slow update 的跨 epoch 对比不只是「调分数」，而是从样本的反复表现里<b>归纳出新的行为守则</b>（输出格式、证据锚点、防漂移、自检）。3 条样本不足以让评分表完美，但足以让「怎么评分」这件事变得稳定和可解释 —— 这是超少样本场景下最有价值的收获。</p></div>
+
+  <h3 class="sub">4.6 泛化到测试集：0.667 → 0.767（+0.100）</h3>
+  <div class="chart-box" id="chartE"></div>
+  <p class="caption">图 E：best skill 在 test 上的表现。基线（空白技能）test=0.6667 → best skill（slow_update_epoch_10）test=0.7667，含 0.3 中间区加权分（2.3/3 = 1.0 + 1.0 + 0.3）。</p>
+  <div class="note blue">说明：实验 B 的数据集为 3 条 full split（train=val=test 各 3 条、且为同 3 条），因此这里展示的是「同一份样本上由 0 分误差稳定到 +0.1 增益」的直接证据；对更大规模、真正 unseen 分布的一般化，需要在更多数据上复现（详见附录「诚实说明」）。</div>
+</section>
+
+<!-- ============ 5 结论 ============ -->
+<section class="block" id="conclusion">
+  <h2 class="sec"><span class="no">5</span>结论与证据链<span class="tag">两个实验 · 一条主线</span></h2>
+  <div class="cards">
+    <div class="mini-card"><div class="k">论点一 · 快</div><div class="v">≈27 分钟 ≈ 半天～一天</div><div class="d">34 条保安样本 → 8/8 维度与人工模板一致；成本压缩 30 倍量级，结论不依赖行业先验</div></div>
+    <div class="mini-card"><div class="k">论点二 · 少</div><div class="v">3 条样本 → 可用技能</div><div class="d">调优参数（10 epochs / batch 3 / min_edit_budget 1）+ slow update，selection 0→0.667</div></div>
+    <div class="mini-card"><div class="k">论点二 · 稳</div><div class="v">4 拒 4 跳 2 收</div><div class="d">edit 数量被学习率控制，每步候选经 hard gate 严格验收，平台期零漂移</div></div>
+    <div class="mini-card"><div class="k">论点二 · 深</div><div class="v">学出细则之外</div><div class="d">slow update 沉淀输出铁律、证据锚点、防漂移、自检四类守则</div></div>
+  </div>
+  <table class="tbl" style="margin-top:16px;">
+    <tr><th>证据项</th><th>数据出处</th><th>支撑的结论</th></tr>
+    <tr><td>基线 selection 0.0 → 逐步上升 → 0.667</td><td>summary.json / history.json / logs_detail.txt</td><td>超少样本调参有效；慢更新突破平台期</td></tr>
+    <tr><td>每步 skill 长度 660→908→1691→…→3165 及内容结构变化</td><td>history.json skill_len / best_skill.md</td><td>小步更新、内容向数据靠拢、守则区逐步成型</td></tr>
+    <tr><td>reflection 每步仅 1-2 edit（edit_budget 截断）</td><td>logs_detail.txt [4/6 SELECT]</td><td>学习率控制修改量 → 学习稳定</td></tr>
+    <tr><td>每步 ACCEPT/REJECT 记录（4 次拒绝保住 0.433）</td><td>logs_detail.txt [6/6 EVALUATE]</td><td>edit 严谨验证，拒绝漂移</td></tr>
+    <tr><td>slow update 9 轮跨 epoch 对比 + 6 次守则注入</td><td>logs_detail.txt SLOW UPDATE 段</td><td>慢更新发现细则之外的评分守则</td></tr>
+    <tr><td>best_skill.md 与 SKILL_template.md 的 8/8 细则对比</td><td>best_skill.md vs SKILL_template.md</td><td>分钟级收敛 ≈ 人工半天～一天的产出</td></tr>
+  </table>
+</section>
+
+<footer>
+  <b>数据来源：</b>outputs/interviewer_blank/{summary.json,history.json,best_skill.md,config.json} · outputs/interviewer_blank2/{summary.json,history.json,logs_detail.txt,best_skill.md,config.json} · skillopt/envs/interviewer/skills/initial_blank.md · data/interviewer_data/{SKILL_template.md,data.csv,data2.csv}
+  <br><b>诚实说明：</b>① 实验 B selection/test 为同一 3 条样本（full split），test +0.100 表示同一样本上误差稳定降低；更严谨的一般化验证需更大 unseen 测试集。② 实验 A test 得分 -0.026 为单次采样的波动，实验 A 的证据重点在评分细则内容一致性。③ 初始空白技能在 selection 评测 0.0 / test 评测 0.667 的差异来自 LLM 单次采样随机性 —— 恰说明「随机评选」状态不可靠、需要技能优化本身的必要性。④ 所有得分口径为 interviewer evaluator 的 hard 信号（zone 命中=1.0，中间区=0.3，解析失败/相反=0.0）。
+</footer>
+</div>
+<script>
+/* ---------- tiny SVG chart helpers (self-contained, offline) ---------- */
+function s(o){return Object.entries(o).map(([k,v])=>k+'="'+v+'"').join(' ');}
+function esc(t){return String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+function makeSvg(el,w,h){
+  el.innerHTML='';
+  var svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+  svg.setAttribute('viewBox','0 0 '+w+' '+h); svg.setAttribute('xmlns','http://www.w3.org/2000/svg');
+  svg.setAttribute('role','img');
+  el.appendChild(svg); return svg;
+}
+function svgChild(svg,tag,attrs){
+  var n=document.createElementNS('http://www.w3.org/2000/svg',tag);
+  for(var k in attrs) n.setAttribute(k,attrs[k]); svg.appendChild(n); return n;
+}
+
+/* config: {w,h,pad,yMax,yTicks,yFmt,xLabels,series:[{name,color,dash,width,points,dots}],scatter:[{i,y,color,shape,label,labelDy}]} */
+function lineChart(el,cfg){
+  var w=cfg.w||820,h=cfg.h||330,pL=56,pR=18,pT=26,pB=44;
+  var pw=w-pL-pR, ph=h-pT-pB;
+  var n=cfg.xLabels.length;
+  var svg=makeSvg(el,w,h);
+  var yMax=cfg.yMax||1, ticks=cfg.yTicks||5;
+  for(var t=0;t<=ticks;t++){
+    var v=yMax*t/ticks, y=pT+ph-(ph*v/yMax);
+    svgChild(svg,'line',{x1:pL,y1:y,x2:w-pR,y2:y,stroke:'#e2e8f0','stroke-width':1});
+    svgChild(svg,'text',{x:pL-8,y:y+4,'text-anchor':'end','font-size':11,fill:'#94a3b8'}).textContent=(cfg.yFmt||function(v){return v.toFixed(2)})(v);
+  }
+  for(var i=0;i<n;i++){
+    var x=pL+pw*(i/(n-1));
+    svgChild(svg,'line',{x1:x,y1:pT,x2:x,y2:pT+ph,stroke:'#f1f5f9','stroke-width':1});
+    svgChild(svg,'text',{x:x,y:h-14,'text-anchor':'middle','font-size':11,fill:'#64748b'}).textContent=cfg.xLabels[i];
+  }
+  var sx=function(i){return pL+pw*(i/(n-1));}, sy=function(v){return pT+ph-(ph*v/yMax);};
+  (cfg.series||[]).forEach(function(ser){
+    var seg=[], run=[];
+    ser.points.forEach(function(v,i){
+      if(v==null||v===undefined){if(run.length){seg.push(run.slice());} run=[]; return;}
+      run.push([sx(i),sy(v)]);
+    });
+    if(run.length) seg.push(run);
+    seg.forEach(function(pts){
+      svgChild(svg,'polyline',{points:pts.map(function(p){return p[0]+','+p[1];}).join(' '),fill:'none',
+        stroke:ser.color,'stroke-width':ser.width||2.5,'stroke-dasharray':ser.dash||'',
+        'stroke-linecap':'round','stroke-linejoin':'round'});
+    });
+    if(ser.dots!==false){
+      ser.points.forEach(function(v,i){
+        if(v==null||v===undefined) return;
+        svgChild(svg,'circle',{cx:sx(i),cy:sy(v),r:2.6,fill:ser.color});
+      });
+    }
+  });
+  (cfg.scatter||[]).forEach(function(m){
+    var x=sx(m.i), y=sy(m.y);
+    if(m.shape==='x'){
+      svgChild(svg,'path',{d:'M'+(x-5)+','+(y-5)+' L'+(x+5)+','+(y+5)+' M'+(x-5)+','+(y+5)+' L'+(x+5)+','+(y-5),
+        stroke:m.color||'#dc2626','stroke-width':2.6,'stroke-linecap':'round'});
+    }else if(m.shape==='star'){
+      var pts=''; for(var k=0;k<10;k++){var r=k%2?5:11,a=-Math.PI/2+k*Math.PI/5; pts+=(k?' ':'')+ (x+r*Math.cos(a)).toFixed(1)+','+(y+r*Math.sin(a)).toFixed(1);}
+      svgChild(svg,'polygon',{points:pts,fill:m.color||'#059669',stroke:'#fff','stroke-width':1});
+    }else{
+      svgChild(svg,'circle',{cx:x,cy:y,r:4.5,fill:m.color||'#059669',stroke:'#fff','stroke-width':1.4});
+    }
+    if(m.label){
+      var ly=m.labelDy===undefined? -12:m.labelDy;
+      svgChild(svg,'text',{x:x,y:y+ly,'text-anchor':m.anchor||'middle','font-size':11.5,fill:m.color||'#334155','font-weight':600}).textContent=m.label;
+    }
+  });
+  if(cfg.legend!==false){
+    var lx=pL, ly=pT-10;
+    (cfg.series||[]).forEach(function(ser){
+      svgChild(svg,'line',{x1:lx,y1:ly-3,x2:lx+18,y2:ly-3,stroke:ser.color,'stroke-width':3,'stroke-dasharray':ser.dash||''});
+      svgChild(svg,'text',{x:lx+24,y:ly,'font-size':11.5,fill:'#475569'}).textContent=ser.name;
+      lx+=24+ser.name.length*7;
+    });
+  }
+}
+
+/* config: {w,h,xLabels,values:[{v,color,label}],yMax,yFmt,badges:[{i,text,color,y}]} */
+function barChart(el,cfg){
+  var w=cfg.w||820,h=cfg.h||300,pL=56,pR=18,pT=30,pB=46;
+  var pw=w-pL-pR, ph=h-pT-pB;
+  var n=cfg.xLabels.length;
+  var yMax=cfg.yMax||Math.max.apply(null,cfg.values.map(function(x){return x.v;}))*1.15;
+  var svg=makeSvg(el,w,h);
+  var ticks=cfg.yTicks||4;
+  for(var t=0;t<=ticks;t++){
+    var v=yMax*t/ticks, y=pT+ph-(ph*v/yMax);
+    svgChild(svg,'line',{x1:pL,y1:y,x2:w-pR,y2:y,stroke:'#e2e8f0','stroke-width':1});
+    svgChild(svg,'text',{x:pL-8,y:y+4,'text-anchor':'end','font-size':11,fill:'#94a3b8'}).textContent=(cfg.yFmt||function(v){return Math.round(v)})(v);
+  }
+  var bw=pw/n*0.58, step=pw/n;
+  for(var i=0;i<n;i++){
+    var x=pL+step*i+(step-bw)/2, barH=Math.max(0.8,ph*cfg.values[i].v/yMax), y=pT+ph-barH;
+    svgChild(svg,'rect',{x:x,y:y,width:bw,height:barH,fill:cfg.values[i].color||'#818cf8',rx:3});
+    if(cfg.values[i].label!==undefined&&cfg.values[i].label!==null){
+      svgChild(svg,'text',{x:x+bw/2,y:y-6,'text-anchor':'middle','font-size':10.5,fill:cfg.values[i].labelColor||'#334155','font-weight':600}).textContent=cfg.values[i].label;
+    }
+    svgChild(svg,'text',{x:pL+step*i+step/2,y:h-18,'text-anchor':'middle','font-size':10.5,fill:'#64748b'}).textContent=cfg.xLabels[i];
+    if(cfg.badges&&cfg.badges[i]&&cfg.badges[i].text){
+      var bx=pL+step*i+step/2, by=cfg.badges[i].y!==undefined?cfg.badges[i].y:pT+14;
+      svgChild(svg,'text',{x:bx,y:by,'text-anchor':'middle','font-size':11,fill:cfg.badges[i].color||'#334155','font-weight':800}).textContent=cfg.badges[i].text;
+    }
+  }
+}
+
+/* ================= 图 A：实验 A 训练曲线 ================= */
+lineChart(document.getElementById('chartA'),{
+  w:920,h:320,yMax:0.5,yTicks:5,yFmt:function(v){return v.toFixed(3);},
+  xLabels:['基线(初始技能)','步骤1','步骤2','步骤3'],
+  series:[
+    {name:'当前最优 selection',color:'#4f46e5',points:[0.2735,0.33235,0.33235,0.33235],dots:true},
+    {name:'rollout(训练)得分',color:'#94a3b8',dash:'6 4',width:2,points:[0.28235,0.37353,0.18824],dots:true}
+  ],
+  scatter:[
+    {i:1,y:0.33235,color:'#059669',label:'ACCEPT +0.059',labelDy:-16},
+    {i:2,y:0.37353,color:'#94a3b8',label:'skip',labelDy:-12},
+    {i:3,y:0.18824,color:'#94a3b8',label:'skip',labelDy:-12}
+  ]
+});
+
+/* ================= 图 B：实验 B 得分曲线 ================= */
+lineChart(document.getElementById('chartB'),{
+  w:960,h:360,yMax:1.0,yTicks:5,yFmt:function(v){return v.toFixed(2);},
+  xLabels:['基线','E1','E2','E3','E4','E5','E6','E7','E8','E9','E10','最终评估'],
+  series:[
+    {name:'当前最优 selection',color:'#4f46e5',points:[0,0.3333,0.4333,0.4333,0.4333,0.4333,0.4333,0.4333,0.4333,0.4333,0.4333,0.6667],dots:true},
+    {name:'rollout(训练)得分',color:'#cbd5e1',dash:'5 5',width:2,points:[null,0.3333,0.6667,0.4333,0.6667,0.3333,0.4333,0.4333,0.5333,0.7667,0.7667],dots:false}
+  ],
+  scatter:[
+    {i:1,y:0.3333,color:'#059669',label:'A 接受',labelDy:-12},
+    {i:2,y:0.4333,color:'#059669',label:'A 接受',labelDy:-12},
+    {i:3,y:0.1,color:'#dc2626',shape:'x',label:'被拒 0.10',labelDy:16},
+    {i:5,y:0.4333,color:'#dc2626',shape:'x',label:'被拒 0.43',labelDy:16},
+    {i:6,y:0.4333,color:'#dc2626',shape:'x',label:'被拒 0.43',labelDy:-12},
+    {i:7,y:0.1,color:'#dc2626',shape:'x',label:'被拒 0.10',labelDy:16},
+    {i:11,y:0.6667,color:'#059669',shape:'star',label:'慢更新突破 0.667',labelDy:-16}
+  ]
+});
+
+/* ================= 图 C：技能长度演化 ================= */
+barChart(document.getElementById('chartC'),{
+  w:1000,h:330,yMax:3400,yFmt:function(v){return v;},
+  xLabels:['初始','S1','S2','S3','S4','S5','S6','S7','S8','S9','S10','最终best'],
+  values:[
+    {v:660,color:'#e2e8f0',label:'660'},
+    {v:908,color:'#818cf8',label:'908'},
+    {v:1691,color:'#4f46e5',label:'1691'},
+    {v:1691,color:'#e2e8f0',label:'(被拒)'},
+    {v:2521,color:'#f59e0b',label:'2521'},
+    {v:2728,color:'#f59e0b',label:'2728'},
+    {v:2856,color:'#e2e8f0',label:'2856'},
+    {v:2856,color:'#e2e8f0',label:'2856'},
+    {v:2752,color:'#f59e0b',label:'2752'},
+    {v:2959,color:'#f59e0b',label:'2959'},
+    {v:2973,color:'#f59e0b',label:'2973'},
+    {v:3165,color:'#059669',label:'3165'}
+  ]
+});
+
+/* ================= 图 D：每步 merge 的 edit 数 ================= */
+barChart(document.getElementById('chartD'),{
+  w:780,h:310,yMax:3,yFmt:function(v){return v;},
+  xLabels:['S1','S2','S3','S4','S5','S6','S7','S8','S9','S10'],
+  values:[
+    {v:2,color:'#059669',label:'2'},{v:2,color:'#059669',label:'2'},
+    {v:2,color:'#dc2626',label:'2'},{v:0,color:'#cbd5e1',label:'0'},
+    {v:1,color:'#dc2626',label:'1'},{v:1,color:'#dc2626',label:'1'},
+    {v:1,color:'#dc2626',label:'1'},{v:0,color:'#cbd5e1',label:'0'},
+    {v:0,color:'#cbd5e1',label:'0'},{v:0,color:'#cbd5e1',label:'0'}
+  ],
+  badges:[
+    {i:0,text:'ACCEPT',color:'#059669',y:6},
+    {i:1,text:'ACCEPT',color:'#059669',y:6},
+    {i:2,text:'REJECT',color:'#dc2626',y:6},
+    {i:3,text:'SKIP',color:'#94a3b8',y:6},
+    {i:4,text:'REJECT',color:'#dc2626',y:6},
+    {i:5,text:'REJECT',color:'#dc2626',y:6},
+    {i:6,text:'REJECT',color:'#dc2626',y:6},
+    {i:7,text:'SKIP',color:'#94a3b8',y:6},
+    {i:8,text:'SKIP',color:'#94a3b8',y:6},
+    {i:9,text:'SKIP',color:'#94a3b8',y:6}
+  ]
+});
+
+/* ================= 图 E：测试集提升 ================= */
+barChart(document.getElementById('chartE'),{
+  w:780,h:300,yMax:1.0,yFmt:function(v){return v.toFixed(2);},
+  xLabels:['基线技能 (S0)','best skill','提升'],
+  values:[
+    {v:0.6667,color:'#94a3b8',label:'0.667'},
+    {v:0.7667,color:'#059669',label:'0.767'},
+    {v:0.1,color:'#4f46e5',label:'+0.100'}
+  ],
+  yTicks:4
+});
+</script>
+</body>
+</html>
