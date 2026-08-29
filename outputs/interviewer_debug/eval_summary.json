@@ -1,7 +1,0 @@
-{
-  "skill": "/home/hata_ros/apps/gemini/SkillOpt/skillopt/envs/interviewer/skills/initial.md",
-  "split": "valid_seen",
-  "n_items": 2,
-  "hard": 0.15,
-  "soft": 0.15
-}

@@ -6,12 +6,7 @@ dist/
 site/
 
 outputs/*
-!outputs/interviewer_blank/
-!outputs/interviewer_blank/**
-!outputs/interviewer_debug/
-!outputs/interviewer_debug/**
-!outputs/interviewer_quickstart/
-!outputs/interviewer_quickstart/**
+outputs/interviewer*/
 
 logs/
 external/
