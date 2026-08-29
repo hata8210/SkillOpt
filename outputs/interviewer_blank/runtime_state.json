@@ -1,0 +1,10 @@
+{
+  "last_completed_step": 3,
+  "current_skill_path": "/home/hata_ros/apps/gemini/SkillOpt/outputs/interviewer_blank/skills/skill_v0003.md",
+  "current_score": 0.33235294117647063,
+  "current_origin": "step_0001",
+  "best_skill_path": "/home/hata_ros/apps/gemini/SkillOpt/outputs/interviewer_blank/best_skill.md",
+  "best_score": 0.33235294117647063,
+  "best_step": 1,
+  "best_origin": "step_0001"
+}

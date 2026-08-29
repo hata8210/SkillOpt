@@ -1,0 +1,9 @@
+[
+  {
+    "op": "insert_after",
+    "target": "<!-- SKILL_FIXED_START -->",
+    "content_preview": "【强制发射】无论面试记录多长、多嘈杂、多残缺，都必须按可确认证据逐项打 0/0.5/1、合计并以 <score>X.X</score> 作为唯一输出；空白、只输出分析或标签缺失即整题失败。",
+    "status": "applied_insert_after",
+    "index": 1
+  }
+]

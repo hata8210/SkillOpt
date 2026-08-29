@@ -1,0 +1,6 @@
+{
+  "reasoning": "两轮技能逐字相同，却出现 interviewer_001 空→5.5、interviewer_003 空→空、interviewer_002 3.0→3.5。证明空回复是随机的发射层缺陷而非评分偏差；单样本翻正不可作为编辑有效证据；评分锚点稳定，不应改动。前代 meta 要求往 SKILL_FIXED 植入发射句，但 SKILL_FIXED 一字未变，指令未落实；interviewer_003 在 SLOW_UPDATE 满篇发射规则下仍空白，说明继续在 SLOW_UPDATE 加句子无效，必须把硬发射句放进 SKILL_FIXED 顶部并以该样本实测验收。",
+  "meta_skill_content": "【最高优先级·本轮唯一必做】interviewer_003 在同技能下连续两轮空回复，且 SLOW_UPDATE 已含最强发射句仍无效——发射保障只能放在 SKILL_FIXED 内。在 SKILL_FIXED 第一行（“本次分析岗位为…”之前）逐字插入：\n【强制发射】无论面试记录多长、多嘈杂、多残缺，都必须按可确认证据逐项打 0/0.5/1、合计并以 <score>X.X</score> 作为唯一输出；空白、只输出分析或标签缺失即整题失败。\n位置优先级：SKILL_FIXED 首行 > 使用说明段 > SLOW_UPDATE。SLOW_UPDATE 中重复的发射句式可精简，避免稀释注意力。\n\n【验收标准】每轮改后必须用 interviewer_003（袁华贤，超长嘈杂样本）实测；只要仍为空即视为失败，不得用 interviewer_001 或其他样本通过来证明有效。若置顶仍空，依次试：(a) 固定段加“最后一行必须是 <score> 标签”；(b) 删除 SLOW_UPDATE 冗余发射长句；(c) 把评分流程压缩成一行内省指令，降低模型中途卡死概率。\n\n【类别级缺陷，勿针对样本改细则】空卷样本在两轮间变化（前轮 interviewer_002、本轮 interviewer_003），说明这是发射层随机缺陷，不是某个候选人的内容问题；不要为特定候选人改写评分细则。\n\n【不要动评分表】interviewer_002 同技能下 3.0→3.5，证明分值漂移是采样噪声而非锚点错误；8 行结构、0.5/1 锚点、footer 区间已稳定，除非同一错值在 ≥2 轮稳定出现，否则禁止为“更准”重写单元格。interviewer_001 空→5.5 也是技能未变下的随机翻正，不构成编辑有效证据。\n\n【补丁卫生】每轮 1–2 个小型定向编辑；新维度并入现有 8 行不加行；footer 与行数同步；改后必查 (a) SKILL_FIXED 发射句逐字存在、(b) interviewer_003 输出非空。",
+  "time_s": 54.1,
+  "action": "write_meta_skill"
+}

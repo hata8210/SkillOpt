@@ -1,0 +1,9 @@
+[
+  {
+    "op": "insert_after",
+    "target": "<!-- SKILL_FIXED_END -->",
+    "content_preview": "无论面试记录多残缺/嘈杂/口语化，都必须按能确认的证据逐项打 0/0.5/1 并合计，输出唯一 <score>X.X</score>；严禁空回复或只输出分析。某项证据不足时按最接近的负面档计 0，照常合计输出。",
+    "status": "applied_insert_after",
+    "index": 1
+  }
+]

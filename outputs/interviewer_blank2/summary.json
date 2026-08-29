@@ -1,0 +1,270 @@
+{
+  "version": "skillopt-0.1.0",
+  "config": {
+    "model_backend": "azure_openai",
+    "optimizer_model": "deepseek-v4-flash",
+    "target_model": "deepseek-v4-flash",
+    "optimizer_backend": "openai_compatible",
+    "target_backend": "openai_compatible",
+    "reasoning_effort": "medium",
+    "rewrite_reasoning_effort": "",
+    "rewrite_max_completion_tokens": 64000,
+    "codex_exec_path": "",
+    "codex_exec_sandbox": "",
+    "codex_exec_profile": "",
+    "codex_exec_reasoning_effort": "",
+    "codex_exec_use_sdk": null,
+    "codex_exec_network_access": null,
+    "codex_exec_web_search": null,
+    "codex_exec_approval_policy": "",
+    "claude_code_exec_path": "claude",
+    "claude_code_exec_profile": "",
+    "claude_code_exec_use_sdk": "auto",
+    "claude_code_exec_effort": "medium",
+    "claude_code_exec_max_thinking_tokens": 16384,
+    "cursor_exec_path": "",
+    "cursor_exec_sandbox": "",
+    "copilot_exec_path": "",
+    "copilot_exec_home": "",
+    "copilot_exec_allow_all_tools": null,
+    "copilot_chat_optimizer_model": "",
+    "copilot_chat_target_model": "",
+    "copilot_chat_timeout": null,
+    "codex_trace_to_optimizer": true,
+    "claude_trace_to_optimizer": true,
+    "azure_openai_endpoint": "",
+    "azure_openai_api_version": "2024-12-01-preview",
+    "azure_openai_api_key": "",
+    "azure_openai_auth_mode": "",
+    "azure_openai_ad_scope": "https://cognitiveservices.azure.com/.default",
+    "azure_openai_managed_identity_client_id": "",
+    "optimizer_azure_openai_endpoint": "",
+    "optimizer_azure_openai_api_version": "2024-12-01-preview",
+    "optimizer_azure_openai_api_key": "",
+    "optimizer_azure_openai_auth_mode": "",
+    "optimizer_azure_openai_ad_scope": "https://cognitiveservices.azure.com/.default",
+    "optimizer_azure_openai_managed_identity_client_id": "",
+    "target_azure_openai_endpoint": "",
+    "target_azure_openai_api_version": "2024-12-01-preview",
+    "target_azure_openai_api_key": "",
+    "target_azure_openai_auth_mode": "",
+    "target_azure_openai_ad_scope": "https://cognitiveservices.azure.com/.default",
+    "target_azure_openai_managed_identity_client_id": "",
+    "qwen_chat_thinking_mode": "",
+    "optimizer_qwen_chat_thinking_mode": "",
+    "target_qwen_chat_thinking_mode": "",
+    "minimax_region": "",
+    "minimax_base_url": "",
+    "minimax_api_key": "",
+    "minimax_model": "MiniMax-M3",
+    "minimax_temperature": "0.7",
+    "minimax_max_tokens": "8000",
+    "minimax_enable_thinking": "false",
+    "num_epochs": 10,
+    "train_size": 3,
+    "batch_size": 3,
+    "accumulation": 1,
+    "seed": 42,
+    "minibatch_size": 3,
+    "merge_batch_size": 3,
+    "analyst_workers": 3,
+    "failure_only": false,
+    "edit_budget": 2,
+    "min_edit_budget": 1,
+    "lr_scheduler": "constant",
+    "lr_control_mode": "fixed",
+    "skill_update_mode": "patch",
+    "use_slow_update": true,
+    "slow_update_samples": 20,
+    "slow_update_gate_with_selection": false,
+    "longitudinal_pair_policy": "mixed",
+    "use_meta_skill": true,
+    "use_skill_aware_reflection": false,
+    "skill_aware_appendix_source": "both",
+    "skill_aware_consolidate_threshold": 0,
+    "use_gate": true,
+    "gate_metric": "hard",
+    "sel_env_num": 0,
+    "test_env_num": 0,
+    "eval_test": true,
+    "env": "interviewer",
+    "skill_init": "skillopt/envs/interviewer/skills/initial_blank.md",
+    "out_root": "/home/hata_ros/apps/gemini/SkillOpt/outputs/interviewer_blank2",
+    "split_mode": "split_dir",
+    "split_seed": 42,
+    "split_dir": "data/interviewer_split",
+    "data_path": "",
+    "split_output_dir": "",
+    "exec_timeout": 120,
+    "max_completion_tokens": 4096,
+    "workers": 3,
+    "limit": 0,
+    "steps_per_epoch": 1,
+    "batches_per_epoch": 1,
+    "samples_per_epoch": 3
+  },
+  "baseline_selection_hard": 0.0,
+  "best_selection_hard": 0.6666666666666666,
+  "final_selection_hard": 0.6666666666666666,
+  "final_selection_soft": 0.6666666666666666,
+  "best_step": 10,
+  "current_origin": "slow_update_epoch_10",
+  "best_origin": "slow_update_epoch_10",
+  "total_steps": 10,
+  "total_accepts": 2,
+  "total_rejects": 4,
+  "total_skips": 4,
+  "epoch_stats": [
+    {
+      "epoch": 1,
+      "steps": [
+        1
+      ],
+      "accepts": 1,
+      "rejects": 0,
+      "skips": 0,
+      "best_score_at_epoch_end": 0.3333333333333333,
+      "current_score_at_epoch_end": 0.3333333333333333
+    },
+    {
+      "epoch": 2,
+      "steps": [
+        2
+      ],
+      "accepts": 1,
+      "rejects": 0,
+      "skips": 0,
+      "best_score_at_epoch_end": 0.43333333333333335,
+      "current_score_at_epoch_end": 0.43333333333333335
+    },
+    {
+      "epoch": 3,
+      "steps": [
+        3
+      ],
+      "accepts": 0,
+      "rejects": 1,
+      "skips": 0,
+      "best_score_at_epoch_end": 0.43333333333333335,
+      "current_score_at_epoch_end": 0.43333333333333335
+    },
+    {
+      "epoch": 4,
+      "steps": [
+        4
+      ],
+      "accepts": 0,
+      "rejects": 0,
+      "skips": 1,
+      "best_score_at_epoch_end": 0.43333333333333335,
+      "current_score_at_epoch_end": 0.43333333333333335
+    },
+    {
+      "epoch": 5,
+      "steps": [
+        5
+      ],
+      "accepts": 0,
+      "rejects": 1,
+      "skips": 0,
+      "best_score_at_epoch_end": 0.43333333333333335,
+      "current_score_at_epoch_end": 0.43333333333333335
+    },
+    {
+      "epoch": 6,
+      "steps": [
+        6
+      ],
+      "accepts": 0,
+      "rejects": 1,
+      "skips": 0,
+      "best_score_at_epoch_end": 0.43333333333333335,
+      "current_score_at_epoch_end": 0.43333333333333335
+    },
+    {
+      "epoch": 7,
+      "steps": [
+        7
+      ],
+      "accepts": 0,
+      "rejects": 1,
+      "skips": 0,
+      "best_score_at_epoch_end": 0.43333333333333335,
+      "current_score_at_epoch_end": 0.43333333333333335
+    },
+    {
+      "epoch": 8,
+      "steps": [
+        8
+      ],
+      "accepts": 0,
+      "rejects": 0,
+      "skips": 1,
+      "best_score_at_epoch_end": 0.43333333333333335,
+      "current_score_at_epoch_end": 0.43333333333333335
+    },
+    {
+      "epoch": 9,
+      "steps": [
+        9
+      ],
+      "accepts": 0,
+      "rejects": 0,
+      "skips": 1,
+      "best_score_at_epoch_end": 0.43333333333333335,
+      "current_score_at_epoch_end": 0.43333333333333335
+    },
+    {
+      "epoch": 10,
+      "steps": [
+        10
+      ],
+      "accepts": 0,
+      "rejects": 0,
+      "skips": 1,
+      "best_score_at_epoch_end": 0.43333333333333335,
+      "current_score_at_epoch_end": 0.43333333333333335
+    }
+  ],
+  "baseline_test_hard": 0.6666666666666666,
+  "baseline_test_soft": 0.6666666666666666,
+  "test_hard": 0.7666666666666666,
+  "test_soft": 0.7666666666666666,
+  "final_test_hard": 0.7666666666666666,
+  "final_test_soft": 0.7666666666666666,
+  "test_delta_hard": 0.09999999999999998,
+  "final_test_delta_hard": 0.09999999999999998,
+  "total_wall_time_s": 3018.1,
+  "token_summary": {
+    "_total": {
+      "calls": 149,
+      "prompt_tokens": 1106296,
+      "completion_tokens": 532272,
+      "total_tokens": 1638568
+    },
+    "analyst": {
+      "calls": 17,
+      "prompt_tokens": 303169,
+      "completion_tokens": 128480,
+      "total_tokens": 431649
+    },
+    "meta_skill": {
+      "calls": 9,
+      "prompt_tokens": 205338,
+      "completion_tokens": 33281,
+      "total_tokens": 238619
+    },
+    "slow_update": {
+      "calls": 9,
+      "prompt_tokens": 208724,
+      "completion_tokens": 56482,
+      "total_tokens": 265206
+    },
+    "target": {
+      "calls": 114,
+      "prompt_tokens": 389065,
+      "completion_tokens": 314029,
+      "total_tokens": 703094
+    }
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "step": 5,
+  "action": "reject",
+  "n_total": 3,
+  "n_fail": 2,
+  "failure_patterns": [
+    {
+      "pattern": "unknown",
+      "count": 2,
+      "task_ids": [
+        "interviewer_001",
+        "interviewer_002"
+      ]
+    }
+  ],
+  "score_before": 0.43333333333333335,
+  "score_after": 0.43333333333333335,
+  "rejected_edits": [
+    {
+      "op": "insert_after",
+      "content": "| **输出要求（不计入总分）** | 无论面试记录多残缺、口语多混乱，都必须按已有证据逐项给 0/0.5/1 并合计 8 项；某项无信息时按缺失项=0 处理，最后必须输出唯一 <score>X.X</score>，严禁留空或输出其它内容 | 留空、拒答或未输出 <score> 标签 | 输出了 <score> 但前后夹带额外文字/换行 | 严格只输出唯一 <score>X.X</score>，且无信息项按 0 合计 |",
+      "target": "| **8. 职业稳定性** | 过往工作年限较长、变动少，能长期投入岗位 | 频繁跳槽、无稳定就业记录 | 工作年限较短或就业记录有间断 | 同一/同类岗位连续工作多年，离职原因合理 |"
+    }
+  ]
+}
