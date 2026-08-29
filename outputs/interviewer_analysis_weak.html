@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SkillOpt 面试官场景 · 弱点与成本分析报告</title>
+<style>
+:root{
+  --ink:#1e293b; --sub:#64748b; --line:#e2e8f0; --bg:#f6f7fb;
+  --card:#ffffff; --primary:#7c3aed; --primary-soft:#f3e8ff;
+  --red:#dc2626; --red-soft:#fef2f2; --amber:#b45309; --amber-soft:#fffbeb;
+  --green:#059669; --green-soft:#ecfdf5; --slate:#334155;
+}
+*{box-sizing:border-box; margin:0; padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  color:var(--ink); background:var(--bg); line-height:1.65; font-size:15px;}
+.wrap{max-width:1080px; margin:0 auto; padding:28px 22px 80px;}
+header.hero{background:linear-gradient(135deg,#4c1d95 0%,#7c3aed 55%,#db2777 100%); color:#fff; border-radius:18px;
+  padding:34px 36px 30px; box-shadow:0 12px 30px rgba(124,58,237,.25);}
+header.hero h1{font-size:26px; letter-spacing:.5px;}
+header.hero p.sub{margin-top:8px; color:#ede9fe; font-size:15px;}
+.kpis{display:grid; grid-template-columns:repeat(auto-fit,minmax(215px,1fr)); gap:14px; margin-top:22px;}
+.kpi{background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.25); border-radius:12px; padding:13px 15px;}
+.kpi b{display:block; font-size:21px;}
+.kpi span{font-size:12.5px; color:#ede9fe;}
+nav.toc{display:flex; flex-wrap:wrap; gap:8px; margin:22px 0 6px;}
+nav.toc a{color:var(--primary); background:var(--primary-soft); border:1px solid #e9d5ff; border-radius:999px;
+  padding:5px 13px; font-size:13px; text-decoration:none;}
+nav.toc a:hover{background:#e9d5ff;}
+section.block{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:26px 28px; margin-top:22px;
+  box-shadow:0 2px 8px rgba(15,23,42,.04);}
+h2.sec{font-size:20px; display:flex; align-items:center; gap:10px; margin-bottom:4px;}
+h2.sec .no{background:var(--red); color:#fff; border-radius:8px; font-size:14px; padding:2px 9px; flex:none;}
+h2.sec .tag{margin-left:auto; font-size:12px; color:var(--sub); font-weight:400; background:var(--bg); border:1px solid var(--line); padding:3px 10px; border-radius:999px;}
+p.lead{color:var(--sub); font-size:14.5px; margin:6px 0 16px;}
+h3.sub{font-size:16px; margin:20px 0 10px; padding-left:10px; border-left:4px solid var(--primary);}
+table.tbl{width:100%; border-collapse:collapse; font-size:13.5px; margin:10px 0 6px;}
+table.tbl th{background:#f1f5f9; color:var(--slate); font-weight:600; text-align:left; padding:8px 10px; border:1px solid var(--line);}
+table.tbl td{padding:8px 10px; border:1px solid var(--line); vertical-align:top;}
+table.tbl tr:nth-child(even) td{background:#fafbfe;}
+.ok{color:var(--green); font-weight:700;} .bad{color:var(--red); font-weight:700;} .warn{color:var(--amber); font-weight:700;}
+.badge{display:inline-block; border-radius:999px; padding:1px 9px; font-size:12px; font-weight:600;}
+.badge.red{background:var(--red-soft); color:var(--red); border:1px solid #fecaca;}
+.badge.gray{background:#f1f5f9; color:var(--sub); border:1px solid var(--line);}
+.badge.amber{background:var(--amber-soft); color:var(--amber); border:1px solid #fde68a;}
+.badge.purple{background:var(--primary-soft); color:var(--primary); border:1px solid #e9d5ff;}
+.badge.green{background:var(--green-soft); color:var(--green); border:1px solid #a7f3d0;}
+.mini-card{border:1px solid var(--line); border-radius:12px; padding:13px 15px; background:#fbfcfe;}
+.mini-card .k{font-size:12px; color:var(--sub);}
+.mini-card .v{font-size:18px; font-weight:700; margin-top:2px;}
+.mini-card .d{font-size:12.5px; color:var(--sub); margin-top:4px;}
+.grid2{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
+@media(max-width:840px){.grid2{grid-template-columns:1fr;}}
+.chart-box{width:100%; overflow-x:auto;}
+.chart-box svg{display:block; width:100%; height:auto; min-width:620px;}
+.caption{font-size:12.5px; color:var(--sub); margin-top:6px;}
+.code{background:#0f172a; color:#e2e8f0; border-radius:10px; padding:13px 15px; font-size:12.5px; overflow-x:auto; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; line-height:1.7; white-space:pre;}
+.note{background:var(--amber-soft); border:1px solid #fde68a; border-radius:12px; padding:12px 16px; font-size:13px; color:#78350f; margin-top:14px;}
+.note.blue{background:var(--primary-soft); border-color:#e9d5ff; color:#4c1d95;}
+.callout{display:flex; gap:12px; background:linear-gradient(135deg,#fdf2f8,#fce7f3); border:1px solid #f9a8d4; border-radius:12px; padding:14px 18px; margin-top:14px;}
+.callout .ic{font-size:22px;}
+.callout p{font-size:14px; color:#831843;}
+ul.plain{list-style:none;}
+ul.plain li{padding-left:22px; position:relative; margin-bottom:7px; font-size:14px;}
+ul.plain li:before{content:"▸"; position:absolute; left:4px; color:var(--primary);}
+.flow{display:flex; flex-wrap:wrap; align-items:stretch; gap:8px; margin:8px 0 4px;}
+.flow .box{flex:1 1 100px; background:#f8fafc; border:1.5px solid var(--line); border-radius:10px; padding:8px 7px; text-align:center; font-size:12px;}
+.flow .box b{display:block; font-size:11.5px; color:var(--primary); margin-bottom:2px;}
+.flow .box.red{border-color:#fda4af; background:var(--red-soft);}
+.flow .arrow{align-self:center; color:var(--sub); font-weight:700;}
+/* stacked bars */
+.sbar{display:flex; height:34px; border-radius:8px; overflow:hidden; margin:6px 0 2px; font-size:11.5px; color:#fff; font-weight:600;}
+.sbar div{display:flex; align-items:center; justify-content:center; white-space:nowrap; min-width:34px;}
+.sbar .lbl{height:20px; display:flex; align-items:center; font-size:12px; color:var(--sub); margin-bottom:2px;}
+.sbar-wrap{margin-bottom:16px;}
+footer{margin-top:26px; font-size:12.5px; color:var(--sub); border-top:1px solid var(--line); padding-top:16px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <h1>SkillOpt 面试官场景 · 弱点与成本分析报告</h1>
+  <p class="sub">基于 interviewer_blank / interviewer_blank2 两次训练实验，围绕「样本不足 + 主观评判」的偏差、slow update 的作弊缺口、闭环训练管线成本三个问题展开</p>
+  <div class="kpis">
+    <div class="kpi"><b>±0.2 ~ ±0.28</b><span>3 条样本下「同一技能」两次评测的平均差（蒙特卡洛，观测校准）；同一初始技能实测 0.0 / 0.333 / 0.667</span></div>
+    <div class="kpi"><b>8 个 epoch</b><span>best 卡在 0.4333 的平台期；突破靠的是最终评估单次采样（0.667），而非 step 梯度</span></div>
+    <div class="kpi"><b>force-accept</b><span>slow update 的注入默认不评测、不过 gate，直接改写当前技能（unconditional）</span></div>
+    <div class="kpi"><b>26 / 50 分钟</b><span>blank2 耗时中 slow update + meta skill 约占 1562s（52%）；3 样本反而比 34 样本更贵</span></div>
+  </div>
+</header>
+
+<nav class="toc">
+  <a href="#p1">问题一 · 得分飘忽 / 错过 edit / 局部最优</a>
+  <a href="#p2">问题二 · slow update 作弊缺口</a>
+  <a href="#p3">问题三 · 闭环管线成本</a>
+  <a href="#conclusion">总结与改进建议</a>
+</nav>
+<!-- ============ 问题一 ============ -->
+<section class="block" id="p1">
+  <h2 class="sec"><span class="no">1</span>问题一：样本不够 + 偏主观评判 → bias 大 → 得分飘忽，易错过好 edit、易陷局部最优<span class="tag">interviewer_blank & blank2</span></h2>
+  <p class="lead">interviewer 环境的「分数」由三层主观/离散的东西构成：① 人工标注的 ground truth（通过 / 不通過，本身就是二值主观判断）；② 目标模型单次采样的总分 <code>&lt;score&gt;</code>；③ evaluator 把总分压成 <b>0 / 0.3 / 1</b> 三档奖励。三者在 3 条样本上取平均，得到的信号分辨率极低、噪声极大。</p>
+
+  <h3 class="sub">1.1 评分信号本身就很粗糙（evaluator 机制）</h3>
+  <div class="grid2">
+    <div>
+      <table class="tbl">
+        <tr><th>环节</th><th>机制</th><th>问题</th></tr>
+        <tr><td>人工标签</td><td>通过 / 不通過（二值）</td><td>主观，无分数维度</td></tr>
+        <tr><td>模型输出</td><td>&lt;score&gt;X.X&lt;/score&gt;（0~8）</td><td>单次采样，LLM 随机</td></tr>
+        <tr><td>zone 判定</td><td>≥6.5 录用 / ≤4.0 拒绝 / 其余中间区</td><td class="bad">悬崖：6.4→6.5 奖励 0.3→1.0</td></tr>
+        <tr><td>奖励</td><td>命中=1.0，中间区=0.3，错/解析失败=0</td><td class="bad">每样本只有三档</td></tr>
+      </table>
+    </div>
+    <div>
+      <p style="font-size:13.5px; color:var(--sub);">关键细节（<code>skillopt/envs/interviewer/evaluator.py</code>）：只要模型输出格式可解析且落入中间区（4.0 &lt; 分数 &lt; 6.5），就<b>无条件送 0.3 分</b>；而解析失败直接 0 分。这意味着「格式对但评分烂」和「评分好但格式错」都会被同一个粗粒度信号惩罚，技能优化很难从中分辨自己该改什么。</p>
+      <div class="note" style="margin-top:8px;">悬崖示例：候选人真实应「拒绝」（≤4.0），模型给 6.4 分 → 0.3；给 6.5 分 → 0.0。0.1 分的差距决定 0.3 的奖励落差，而 0.1 分在单次 LLM 采样下完全是噪声。</div>
+    </div>
+  </div>
+
+  <h3 class="sub">1.2 得分飘忽的直接证据：同一个技能，多次评测分数差可达 0.19 ~ 0.67</h3>
+  <div class="chart-box" id="chartC1"></div>
+  <p class="caption">图 1：同一技能在不同评测时刻的得分观测（真实数据）。<b>S0</b>＝初始空白技能在 3 条样本上的三次评测（baseline selection / step1 rollout / baseline test，同一批样本 full split），实测 0.0 / 0.333 / 0.667 —— 技能完全没变，分数从 0 到 0.667。<b>S1</b>＝blank1 第一步接受的技能在 34 条样本上的三次观测（selection 0.332、rollout 0.374、rollout 0.188）。<b>current</b>＝blank2 第 4~10 轮训练中近似同一技能的 7 次 rollout 观测（0.333~0.767）。</p>
+
+  <h3 class="sub">1.3 定量：样本越少，「分数」越像随机数（蒙特卡洛，分布已按真实观测校准）</h3>
+  <div class="chart-box" id="chartC2"></div>
+  <p class="caption">图 2：同一技能独立评测两次，|分数差| 超过阈值 t 的概率。校准方法：每样本奖励按 {0:0.40, 0.3:0.28, 1:0.32} 分布采样（对齐 blank2 当前技能约 0.433 的均值），各模拟 30 万次。<b>n=3 时差 &gt;0.1 的概率 76%，差 &gt;0.2 的概率 60%</b>；n=34 时分别只有 33% / 5%。</p>
+  <div class="cards" style="display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:14px; margin-top:8px;">
+    <div class="mini-card"><div class="k">n=3 两次评测平均差</div><div class="v">0.278</div><div class="d">中位数 0.233，p90=0.567</div></div>
+    <div class="mini-card"><div class="k">n=34 两次评测平均差</div><div class="v">0.083</div><div class="d">中位数 0.071，p90=0.171</div></div>
+    <div class="mini-card"><div class="k">结论</div><div class="v" style="color:var(--red);">1/3 样本量</div><div class="d">噪声放大 3 倍以上；0.1~0.2 的分数差在 3 样本下无统计意义</div></div>
+  </div>
+
+  <h3 class="sub">1.4 reward 分辨率：3 条样本只有 10 个可能的分数</h3>
+  <div class="chart-box" id="chartC3"></div>
+  <p class="caption">图 3：n=3 时 selection 分数只能是 0.1 间距的离散值（0.0, 0.1, 0.2, 0.333, 0.433, …）。0.4333 平台附近的最小分辨率是 0.033~0.1 —— 一次「把 1 条样本从中间区 0.3 提到命中 1.0」的改进（+0.233）可以测到，但「让 0.3 中间区接近命中」或「让 1.0 保持 1.0」这类边际改进完全测不出来。</p>
+  <ul class="plain">
+    <li>对比：n=34 时分数步长 ≈0.009，能分辨的改进粒度约为 3 样本的 10 倍</li>
+    <li>3 样本下 selection 值域被钉在 {0, 0.1, 0.2, 0.333, 0.433, 0.533, 0.667, 0.767, 0.867, 1.0}，这也是为什么两个实验里反复出现 0.4333 / 0.6667 这些「幸运数字」</li>
+  </ul>
+
+  <h3 class="sub">1.5 后果 A：容易错过好 edit（拒绝决策被噪声主导）</h3>
+  <table class="tbl">
+    <tr><th>step</th><th>候选 selection</th><th>gate</th><th>噪声视角下的解读</th></tr>
+    <tr><td>3</td><td>0.1000</td><td><span class="badge red">REJECT</span></td><td>0.1 本身就在噪声带里 —— 同一「当前技能」在 E9 的 slow update 观测也是 0.1000；0.1 很可能是采样运气，不代表候选 edit 全坏</td></tr>
+    <tr><td>5</td><td>0.4333（== 当前）</td><td><span class="badge red">REJECT</span></td><td>持平 = 在噪声中抛硬币；候选里可能藏着本可提升的好 edit，但被单次采样埋没</td></tr>
+    <tr><td>6</td><td>0.4333（== 当前）</td><td><span class="badge red">REJECT</span></td><td>同上；被拒候选的 edits 直接丢弃，没有回溯/重采样机制</td></tr>
+    <tr><td>7</td><td>0.1000</td><td><span class="badge red">REJECT</span></td><td>同上</td></tr>
+  </table>
+  <p style="font-size:13.5px; color:var(--sub); margin-top:8px;">更进一步的证据：<b>被拒候选的 selection 分布（0.1 / 0.4333）与「当前技能」自身在 slow update 观测里的分布（0.1 ~ 0.767）几乎重合</b> —— 说明 accept/reject 的输入信号不足以区分「候选更好」和「采样运气差」。没有任何代码把被拒候选的部分 edit 保留下来重试，好 edit 一旦被拒就永久丢失。</p>
+
+  <h3 class="sub">1.6 后果 B：容易陷入局部最优（假平台期）</h3>
+  <div class="chart-box" id="chartC4"></div>
+  <p class="caption">图 4：blank2 中 best 得分从 E2 起卡在 0.4333，连续 8 个 epoch 无 step 级提升；而同期的 rollout 观测（虚线）在 E9/E10 已到 0.7667 —— 训练信号已经暗示技能变强，但 selection 评测（单次采样、同 3 条）始终报 0.4333，制造了一个<b>评测噪声造成的假平台期</b>。最终突破（0.667）来自训练结束后的最终评估，而不是任何一步的梯度更新。</p>
+  <ul class="plain">
+    <li>34 样本的 blank1 同样存在：best 在 step1 后连续 2 个 epoch 无任何提升（2 次 skip），rollout 在 0.19~0.37 之间抖动</li>
+    <li>「严格大于当前才 accept」的 gate 在小样本噪声下等价于「拒绝所有与当前持平或偶发低分的候选」—— 保守，但代价是平台期和错过真改进</li>
+  </ul>
+  <div class="callout"><div class="ic">⚠️</div><p>问题一结论：interviewer 场景的分数 = 主观标签 × 单次采样 × 三档奖励 × 3~34 条样本，噪声足以吞没 0.1~0.3 的真实改进。当前管线既不重复采样（每次评测只跑 1 次），也不重试被拒候选，因此在「样本少 + 偏主观」的场景里，得分飘忽、错过好 edit、假局部最优是结构性的，不是调参能完全解决的。</p></div>
+</section>
+<!-- ============ 问题二 ============ -->
+<section class="block" id="p2">
+  <h2 class="sec"><span class="no">2</span>问题二：开启 slow update 后，等于给模型开了一个「可作弊的缺口」，epoch-wise edit 必须小心接纳<span class="tag">interviewer_blank2 · 代码级证据</span></h2>
+  <p class="lead">slow update 的定位是「跨 epoch 纵向分析后，把规律性守则写进技能的保护区」。设计初衷合理，但在当前实现下它走了一条<b>不评测、不过 gate、直接改写</b>的捷径 —— 与 step 级 edit 的严格验收流程形成鲜明对比。</p>
+
+  <h3 class="sub">2.1 机制缺口：force-accept（unconditional），注入不经过任何验证</h3>
+  <div class="grid2">
+    <div>
+      <div class="code"># 训练日志（logs_detail.txt 开头）
+[slow update] acceptance=force-accept (unconditional)
+
+# trainer.py 中 force-accept 分支（默认路径）
+current_skill = replace_slow_update_field(
+    current_skill, slow_content)      # 直接改写，无评测、无 gate
+sel_cache[slow_candidate_hash] = (current_score, 0.0)
+# ↑ 把【旧技能的分数】登记到【新技能】的缓存槽里</div>
+    </div>
+    <div>
+      <ul class="plain">
+        <li><b>默认配置</b>：<code>slow_update_gate_with_selection=false</code>，注入完全不评测；代码里 gated 模式（评测 + gate）虽然存在，但本次实验没启用</li>
+        <li><b>只写 current，不写 best</b>：守则被塞进当前技能继续训练，best 仍是 step 级最优（0.4333）—— 直到训练结束才被一次「最终评估」翻盘（见 2.2）</li>
+        <li><b>保护区 READ-ONLY</b>：<code>slow_update.py</code> 把 SLOW_UPDATE 区设为 step 级 analyst 的只读区 —— 一旦注入了一条坏守则，正常的 per-step edit 无法修正它，只能等下一轮 slow update 覆盖</li>
+        <li><b>缓存污染</b>：<code>sel_cache[新hash] = (current_score, 0.0)</code> 把从未在注入后技能上测量过的分数登记为新技能的成绩 —— 后续若命中同 hash，会读到一份「伪造」的评测分</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3 class="sub">2.2 最危险的一环：最终晋升 = 单次采样「一锤定音」</h3>
+  <div class="grid2">
+    <div>
+      <div class="code"># 训练日志（logs_detail.txt 结尾）
+[final skill val] items=3 final_selection_hard=0.6667
+  gate=0.6667 (best=0.4333)
+[promote] final 0.6667 &gt; best 0.4333
+  → final becomes new best
+  (step 10, origin slow_update_epoch_10)</div>
+      <p class="caption" style="margin-top:6px;">trainer.py 2179-2230 行：最终技能与 best 不同时，只跑<b>一次</b>3 条样本的 selection rollout，若 &gt; best 就无条件 promote。</p>
+    </div>
+    <div>
+      <ul class="plain">
+        <li><b>0.233 的提升正好落在噪声带里</b>：n=3 同技能两次评测差的中位数就是 0.233（见问题一图 2），而 final（0.6667）vs best（0.4333）的差恰好是 0.233 —— 这次「突破」与「同技能测量噪声」在统计上不可区分</li>
+        <li><b>同一技能被测出过 0.1</b>：E9 的 slow update 把当前技能测到 0.1000，E10 又测到 0.7667；最终评估再测一次就取了 0.6667 —— 三次测量、三个分数，恰好是「挑到一次好采样」</li>
+        <li>step 级 gate 用「严格大于」保护了 8 个 epoch 的 0.4333，最后却被一次不加 gate、不重复采样的最终评估绕过</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3 class="sub">2.3 内容特征：第一类守则是「打评测器的补丁」，而不是评分本身</h3>
+  <p style="font-size:13.5px; color:var(--sub);">看最终 best_skill 里 SLOW_UPDATE 区的 15 条守则，能明显发现「作弊缺口」的痕迹 —— 模型学会了怎么让评测器给分，而不是怎么评得更准：</p>
+  <table class="tbl">
+    <tr><th style="width:22%;">守则类别</th><th>代表内容</th><th style="width:36%;">为什么算「缺口」</th></tr>
+    <tr><td>① 输出铁律（规则 1-4）</td><td>必须输出一行 &lt;score&gt;，禁止前后缀文字，宁可 0.0 也不空白</td><td class="bad">直接利用 evaluator「解析失败=0」的漏洞 —— 基线 0 分的根因是格式，慢更新第一课学的不是评分而是「让解析器拿到分」；中间区还能白拿 0.3</td></tr>
+    <tr><td>② 证据锚点（规则 5-13）</td><td>保洁=0.5、保安/物管=1、「识少少」=0.5 …</td><td>这部分是真实的评分知识，属于合理收获 —— 但它和①混在一起，无法与「评测器 hack」分开审计</td></tr>
+    <tr><td>③ 防漂移 + ④ 自检</td><td>同一证据同一分；发送前一秒自检格式</td><td class="warn">自检规则再次聚焦「格式」而非评分；防漂移是好守则，但它本质是在修 slow update 自己反复注入造成的不一致</td></tr>
+    <tr><td>特殊规则 13</td><td>面试官介绍岗位是「洗手间清洁/收潲水」时不要质疑与保安员不一致</td><td class="bad">这是从 3 条保洁样本里观察到的一次性现象 —— 在更大样本分布上会变成错误先验；<b>过度拟合样本噪声被写进技能且无法被 step edit 修改</b></td></tr>
+  </table>
+
+  <h3 class="sub">2.4 注入的即时收益无法验证：7 次注入后 selection 纹丝不动</h3>
+  <div class="chart-box" id="chartC5"></div>
+  <p class="caption">图 5：每轮 slow update 注入的守则字符数 vs 注入后下一轮的 current selection 得分。7 次注入（831~1475 字符）之后，selection 全部仍是 0.4333 —— 没有任何一次注入在正常评测里被证明「有效」；唯一一次「见效」就是 2.2 里单次采样的最终评估。同时守则长度忽大忽小（S8 时技能总长反而从 2856 缩到 2752），说明内容是模型自由发挥，长度与质量都不可控。</p>
+
+  <div class="callout"><div class="ic">🔓</div><p>问题二结论：slow update 的「保护区 + force-accept + 最终单次晋升」组合，等于给了优化器一条绕过全部验证的路径 —— 它可以在不评测的情况下改写技能，在无法证明有效的情况下最终晋升。epoch-wise edit 必须像 step edit 一样走「评测 → gate → 可回滚」，否则它就是训练管线里的后门。</p></div>
+  <div class="note blue">改进方向（代码已支持一半）：设置 <code>slow_update_gate_with_selection=true</code>；注入候选用多次采样投票的 selection 分参与同一 gate；禁止守则区写「输出格式/评测器相关」指令（或单独隔离审计）；限制守则区长度与「只能写可验证的事实性规则」；最终晋升也需要重复采样 + 显著超出噪声带（如 &gt; 当前 best + 2×σ）才允许 promote。</div>
+</section>
+<!-- ============ 问题三 ============ -->
+<section class="block" id="p3">
+  <h2 class="sec"><span class="no">3</span>问题三：闭环训练管线仍有不小的成本 —— 看 interviewer 的定制数据结构与代码<span class="tag">数据 + 代码盘点</span></h2>
+  <p class="lead">「闭环」= 原始数据 → 物化/split → 环境适配 → 训练（rollout/反思/评测）→ 记忆（slow update / meta skill）→ 产物。这个闭环里真正「贵」的不是优化器本身，而是<b>数据准备、人工标注、环境定制、评测与记忆环节</b>。</p>
+
+  <h3 class="sub">3.1 时间成本：3 样本的训练反而比 34 样本更贵，一半花在记忆环节</h3>
+  <div class="sbar-wrap">
+    <div class="lbl">interviewer_blank（34 条 · 3 epochs · 总计 1611s ≈ 27 分钟）</div>
+    <div class="sbar">
+      <div style="flex:715; background:#4f46e5;" title="rollout 716s">rollout 716s</div>
+      <div style="flex:214; background:#818cf8;" title="reflect 214s">reflect 214s</div>
+      <div style="flex:235; background:#a5b4fc;" title="evaluate 235s">eval 235s</div>
+      <div style="flex:446; background:#cbd5e1;" title="基线/测试评测等其他 446s">其他 446s</div>
+    </div>
+  </div>
+  <div class="sbar-wrap">
+    <div class="lbl">interviewer_blank2（3 条 · 10 epochs · 总计 3018s ≈ 50 分钟）</div>
+    <div class="sbar">
+      <div style="flex:352; background:#4f46e5;" title="rollout 352s">rollout 352s</div>
+      <div style="flex:750; background:#818cf8;" title="reflect 750s">reflect 750s</div>
+      <div style="flex:257; background:#a5b4fc;" title="evaluate 257s">eval 257s</div>
+      <div style="flex:1229; background:#db2777;" title="slow update 1229s">slow update 1229s</div>
+      <div style="flex:333; background:#f472b6;" title="meta skill 333s">meta skill 333s</div>
+      <div style="flex:97; background:#cbd5e1;" title="其他 97s">其他</div>
+    </div>
+  </div>
+  <p class="caption">图 6：两次训练的总耗时分解（基于 history.json 的 per-step timing 与 logs_detail.txt 的 slow/meta 耗时）。blank2 中 slow update + meta skill 合计 ≈1562s（52%）；3 条样本跑 10 个 epoch，每轮都要付一笔固定的「纵向对比 + 记忆」开销，因此<b>样本越少，单样本训练成本反而越高</b>。</p>
+  <ul class="plain">
+    <li>单步成本结构：blank2 每步 rollout 仅 12~48s（3 条），但 reflect 66~83s、evaluate 41~44s —— 反思与评测是每步的固定大头；blank1（34 条）单步 rollout 196~267s、evaluate 235s，样本量直接把 rollout/eval 拖慢</li>
+    <li>评测重复消耗：同一个 selection 集被反复 rollout（基线、每步候选、slow gate、最终评估、test），没有任何评测缓存复用（除 sel_cache 但只按 hash 命中且被 2.1 的污染削弱）</li>
+    <li>极端反直觉：3 条样本的 blank2 用 token 1.64M、耗时 3018s，反而超过 34 条样本的 blank1（1.71M token、1611s）的一半 token、近 2 倍时间 —— 钱和时间主要花在 10 个 epoch 的反思 + 记忆循环上</li>
+  </ul>
+
+  <h3 class="sub">3.2 token 成本构成：记忆环节吃掉近 1/3</h3>
+  <div class="sbar-wrap">
+    <div class="lbl">interviewer_blank · 总 1.71M tokens</div>
+    <div class="sbar">
+      <div style="flex:1117; background:#4f46e5;" title="target 1117k">target 1117k</div>
+      <div style="flex:595; background:#818cf8;" title="analyst 595k">analyst 595k</div>
+    </div>
+  </div>
+  <div class="sbar-wrap">
+    <div class="lbl">interviewer_blank2 · 总 1.64M tokens</div>
+    <div class="sbar">
+      <div style="flex:703; background:#4f46e5;" title="target 703k">target 703k</div>
+      <div style="flex:432; background:#818cf8;" title="analyst 432k">analyst 432k</div>
+      <div style="flex:265; background:#db2777;" title="slow update 265k">slow 265k</div>
+      <div style="flex:239; background:#f472b6;" title="meta skill 239k">meta 239k</div>
+    </div>
+  </div>
+  <p class="caption">图 7：token 构成（summary.json token_summary）。blank2 的 slow update + meta skill 共约 504k tokens（31% 总量），其中 slow update 每轮要把「上一轮技能 + 本轮技能 + 完整轨迹对比」塞进上下文（slow_update.py 注：长度截断已被移除，整段轨迹全量传入）—— 记忆环节是为了 3 条样本付出的大额固定税。</p>
+
+  <h3 class="sub">3.3 定制数据结构与代码：每接入一个新岗位都要重走一遍</h3>
+  <div class="flow">
+    <div class="box"><b>CSV 源数据</b>data.csv(34条) / data2.csv(3条)<br>含人工标注 result + 全文转写</div>
+    <div class="arrow">→</div>
+    <div class="box red"><b>materialize</b>scripts/materialize_interviewer.py（160 行）<br>CSV → items.json（jd/context/question/answers/ground_truth）</div>
+    <div class="arrow">→</div>
+    <div class="box"><b>split 目录</b>train/val/test 各 1 份 items.json（3 条时约 40KB/份）<br>full / stratified 策略</div>
+    <div class="arrow">→</div>
+    <div class="box red"><b>环境定制</b>adapter(95) / rollout(135) / evaluator(74) / dataloader(23) / prompts(90) / skills(101) 行</div>
+    <div class="arrow">→</div>
+    <div class="box"><b>配置</b>configs/interviewer/default.yaml / default2.yaml（各 37 行）<br>skill_init 换成岗位模板</div>
+    <div class="arrow">→</div>
+    <div class="box"><b>训练 + 评测</b>rollout→reflect→select→update→evaluate → slow/meta → 产物</div>
+  </div>
+  <table class="tbl" style="margin-top:12px;">
+    <tr><th>组件</th><th style="width:14%;">行数</th><th>本任务定制了什么</th></tr>
+    <tr><td><code>scripts/materialize_interviewer.py</code></td><td>160</td><td>解析面试 CSV、构造 question 提示词（候选人 + 转写 + 输出指令）、归一化 result 标签、full/stratified 三种 split</td></tr>
+    <tr><td><code>envs/interviewer/evaluator.py</code></td><td>74</td><td><code>&lt;score&gt;</code> 正则解析、6.5/4.0 zone 阈值、中间区奖励 0.3 —— 全部针对「面试录用判定」语义定制</td></tr>
+    <tr><td><code>envs/interviewer/rollout.py</code></td><td>135</td><td>单轮问答 rollout、落盘 conversation.json、resume 支持；面试任务只有 1 轮 n_turns=1</td></tr>
+    <tr><td><code>envs/interviewer/adapter.py</code></td><td>95</td><td>把 items 组装成 env、batch/分 worker rollout、任务类型枚举</td></tr>
+    <tr><td><code>envs/interviewer/dataloader.py</code></td><td>23</td><td>从 split items.json 读数据（通用 SplitDataLoader 的薄封装）</td></tr>
+    <tr><td>prompts / skills</td><td>90 / 101</td><td>analyst 成功/失败反思模板；initial / initial_blank / initial_human 三个岗位技能模板</td></tr>
+    <tr><td>configs/interviewer/*.yaml</td><td>74</td><td>34 条「标准」与 3 条「超少样本」两套训练配方（epoch/batch/edit_budget/slow/meta 开关）</td></tr>
+    <tr><td>split items.json</td><td>~40KB×3</td><td>每份含完整转写与标注，一次岗位切换 = 重新物化 + 重新 split（本次即为保安→保洁的重做）</td></tr>
+  </table>
+  <ul class="plain">
+    <li>只算 interviewer 环境本身 ≈750 行定制代码 + 3 份数据文件 + 2 份配置 + 文档；还不包括数据标注（34+3 条人工判定与全文转写整理、data2.csv 的岗位 JD/薪酬对齐）</li>
+    <li>每接入一个新岗位/数据集：准备 CSV（含人工 ground truth）→ 参数化 materialize（换 —csv）→ 重新 split → 准备/核对 initial 模板 → 写/调 yaml → 跑训练 → 人工核对产物 —— 固定成本全部重付</li>
+  </ul>
+
+  <div class="callout"><div class="ic">💰</div><p>问题三结论：闭环管线真实成本 = 数据标注 + 环境定制（≈750 行）+ 评测迭代（repeat rollout）+ 记忆环节（slow/meta，blank2 占时间 52%、token 31%）。「优化本身」很便宜，但把它包成一个能跑、能测、能记住的闭环很贵；对 3 条样本的微任务，固定成本完全压过数据本身的价值。降本方向：评测结果缓存复用、慢更新/记忆降频（如每 2-3 epoch 一次）、轨迹截断恢复、共享岗位无关的评测器抽象、多采样投票只对「有争议」的决策开。</p></div>
+</section>
+
+<!-- ============ 总结 ============ -->
+<section class="block" id="conclusion">
+  <h2 class="sec"><span class="no">4</span>总结：三个问题是一件事的三个侧面 —「信号」不可信，于是「门」不敢开、账也算不清<span class="tag">建议按优先级落地</span></h2>
+  <table class="tbl">
+    <tr><th style="width:20%;">问题</th><th>核心证据</th><th style="width:26%;">最小修复</th></tr>
+    <tr><td>① 得分飘忽 / 错过 edit / 局部最优</td><td>同一技能实测 0.0/0.333/0.667；n=3 同技能两次评测差&gt;0.1 概率 76%；best 卡 0.4333 达 8 个 epoch</td><td>评测重采样 3-5 次取均值 + 被拒候选的 edit 进入「候补池」重试 + 有争议分数（差 &lt; 2σ）标记为 tie 不据此做决策</td></tr>
+    <tr><td>② slow update 作弊缺口</td><td>force-accept 无评测；保护区 READ-ONLY；最终晋升=单次采样 0.233 提升（恰为中位噪声）</td><td>slow_update_gate_with_selection=true + 注入候选走同一 gate + 守则区禁止格式/评测器指令 + 最终晋升需 &gt; best+2σ 才 promote</td></tr>
+    <tr><td>③ 闭环成本高</td><td>3 样本训练 50 分钟 &gt; 34 样本 27 分钟；slow+meta 占时间 52% / token 31%；定制代码≈750 行</td><td>评测缓存复用 + slow/meta 降频 + 恢复轨迹截断 + 抽样投票降本（只对争议候选开）</td></tr>
+  </table>
+  <div class="note" style="margin-top:14px;">
+    <b>一句话总结：</b>interviewer 这类「样本少、评分主观」的任务，当前 SkillOpt 管线的瓶颈不在优化算法本身，而在<b>评测信号太贵又太脏</b> —— 信号脏（0/0.3/1 三档 × 单次采样 × 3 条样本）导致 step 决策被噪声主导、假平台期和误拒好 edit；唯一绕过脏信号的门（slow update force-accept）反而成了未经验证的后门；而支撑这个闭环的评测与记忆开销又把小样本训练的边际成本推得过高。把「评测变准、变便宜、变可复用」放在「让模型更聪明」之前，是这个场景最值得先做的事。
+  </div>
+</section>
+
+<footer>
+  <b>数据/代码来源：</b>outputs/interviewer_blank/{summary.json,history.json} · outputs/interviewer_blank2/{summary.json,history.json,logs_detail.txt,best_skill.md} · skillopt/engine/trainer.py（slow update / final promote 逻辑）· skillopt/optimizer/slow_update.py · skillopt/envs/interviewer/{adapter,rollout,evaluator,dataloader}.py · scripts/materialize_interviewer.py · configs/interviewer/*.yaml · data/interviewer_data/{data.csv,data2.csv}
+  <br><b>口径说明：</b>①「同一技能多次评测」指样本集相同（full split）、技能不变或仅被 slow update 微调下的多次 rollout；②蒙特卡洛分布按每样本奖励 {0:0.40, 0.3:0.28, 1:0.32} 校准到 blank2 current≈0.433，绝对数值依赖该假设，但「n=3 vs n=34 噪声差异 3 倍以上」的结论对假设不敏感；③时间分解中空白 evaluate 步（skip 步）按 0 计，slow/meta 耗时来自日志打印值；④文中「测评」与「评测」通用。
+</footer>
+</div>
+<script>
+/* ---------- tiny SVG helpers (self-contained, offline) ---------- */
+function makeSvg(el,w,h){
+  el.innerHTML='';
+  var svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+  svg.setAttribute('viewBox','0 0 '+w+' '+h); svg.setAttribute('xmlns','http://www.w3.org/2000/svg');
+  svg.setAttribute('role','img'); el.appendChild(svg); return svg;
+}
+function svgChild(svg,tag,attrs){
+  var n=document.createElementNS('http://www.w3.org/2000/svg',tag);
+  for(var k in attrs) n.setAttribute(k,attrs[k]); svg.appendChild(n); return n;
+}
+
+/* line chart with null support */
+function lineChart(el,cfg){
+  var w=cfg.w||820,h=cfg.h||330,pL=56,pR=18,pT=26,pB=46;
+  var pw=w-pL-pR, ph=h-pT-pB, n=cfg.xLabels.length;
+  var svg=makeSvg(el,w,h);
+  var yMax=cfg.yMax||1, ticks=cfg.yTicks||5;
+  for(var t=0;t<=ticks;t++){
+    var v=yMax*t/ticks, y=pT+ph-(ph*v/yMax);
+    svgChild(svg,'line',{x1:pL,y1:y,x2:w-pR,y2:y,stroke:'#e2e8f0','stroke-width':1});
+    svgChild(svg,'text',{x:pL-8,y:y+4,'text-anchor':'end','font-size':11,fill:'#94a3b8'}).textContent=(cfg.yFmt||function(v){return v.toFixed(2)})(v);
+  }
+  for(var i=0;i<n;i++){
+    var x=pL+pw*(i/(n-1));
+    svgChild(svg,'line',{x1:x,y1:pT,x2:x,y2:pT+ph,stroke:'#f1f5f9','stroke-width':1});
+    svgChild(svg,'text',{x:x,y:h-18,'text-anchor':'middle','font-size':11,fill:'#64748b'}).textContent=cfg.xLabels[i];
+  }
+  var sx=function(i){return pL+pw*(i/(n-1));}, sy=function(v){return pT+ph-(ph*v/yMax);};
+  (cfg.series||[]).forEach(function(ser){
+    var seg=[], run=[];
+    ser.points.forEach(function(v,i){
+      if(v==null){if(run.length){seg.push(run.slice());} run=[]; return;}
+      run.push([sx(i),sy(v)]);
+    });
+    if(run.length) seg.push(run);
+    seg.forEach(function(pts){
+      svgChild(svg,'polyline',{points:pts.map(function(p){return p[0]+','+p[1];}).join(' '),fill:'none',
+        stroke:ser.color,'stroke-width':ser.width||2.5,'stroke-dasharray':ser.dash||'',
+        'stroke-linecap':'round','stroke-linejoin':'round'});
+    });
+    if(ser.dots!==false) ser.points.forEach(function(v,i){ if(v==null)return; svgChild(svg,'circle',{cx:sx(i),cy:sy(v),r:2.6,fill:ser.color}); });
+  });
+  (cfg.scatter||[]).forEach(function(m){
+    var x=sx(m.i), y=sy(m.y);
+    if(m.shape==='star'){
+      var pts=''; for(var k=0;k<10;k++){var r=k%2?5:11,a=-Math.PI/2+k*Math.PI/5; pts+=(k?' ':'')+(x+r*Math.cos(a)).toFixed(1)+','+(y+r*Math.sin(a)).toFixed(1);}
+      svgChild(svg,'polygon',{points:pts,fill:m.color||'#059669',stroke:'#fff','stroke-width':1});
+    }else if(m.shape==='x'){
+      svgChild(svg,'path',{d:'M'+(x-5)+','+(y-5)+' L'+(x+5)+','+(y+5)+' M'+(x-5)+','+(y+5)+' L'+(x+5)+','+(y-5),stroke:m.color||'#dc2626','stroke-width':2.6,'stroke-linecap':'round'});
+    }else{
+      svgChild(svg,'circle',{cx:x,cy:y,r:4.5,fill:m.color||'#059669',stroke:'#fff','stroke-width':1.4});
+    }
+    if(m.label){ svgChild(svg,'text',{x:x,y:y+(m.labelDy===undefined?-12:m.labelDy),'text-anchor':m.anchor||'middle','font-size':11.5,fill:m.color||'#334155','font-weight':600}).textContent=m.label; }
+  });
+  if(cfg.legend!==false){
+    var lx=pL, ly=pT-10;
+    (cfg.series||[]).forEach(function(ser){
+      svgChild(svg,'line',{x1:lx,y1:ly-3,x2:lx+18,y2:ly-3,stroke:ser.color,'stroke-width':3,'stroke-dasharray':ser.dash||''});
+      svgChild(svg,'text',{x:lx+24,y:ly,'font-size':11.5,fill:'#475569'}).textContent=ser.name;
+      lx+=24+ser.name.length*7;
+    });
+  }
+}
+
+/* bar chart */
+function barChart(el,cfg){
+  var w=cfg.w||820,h=cfg.h||300,pL=56,pR=18,pT=30,pB=48;
+  var pw=w-pL-pR, ph=h-pT-pB, n=cfg.xLabels.length;
+  var yMax=cfg.yMax||Math.max.apply(null,cfg.values.map(function(x){return x.v;}))*1.15;
+  var svg=makeSvg(el,w,h);
+  var ticks=cfg.yTicks||4;
+  for(var t=0;t<=ticks;t++){
+    var v=yMax*t/ticks, y=pT+ph-(ph*v/yMax);
+    svgChild(svg,'line',{x1:pL,y1:y,x2:w-pR,y2:y,stroke:'#e2e8f0','stroke-width':1});
+    svgChild(svg,'text',{x:pL-8,y:y+4,'text-anchor':'end','font-size':11,fill:'#94a3b8'}).textContent=(cfg.yFmt||function(v){return Math.round(v)})(v);
+  }
+  var bw=pw/n*0.58, step=pw/n;
+  for(var i=0;i<n;i++){
+    var x=pL+step*i+(step-bw)/2, barH=Math.max(0.8,ph*cfg.values[i].v/yMax), y=pT+ph-barH;
+    svgChild(svg,'rect',{x:x,y:y,width:bw,height:barH,fill:cfg.values[i].color||'#818cf8',rx:3});
+    if(cfg.values[i].label!==undefined&&cfg.values[i].label!==null){
+      svgChild(svg,'text',{x:x+bw/2,y:y-6,'text-anchor':'middle','font-size':10.5,fill:cfg.values[i].labelColor||'#334155','font-weight':600}).textContent=cfg.values[i].label;
+    }
+    svgChild(svg,'text',{x:pL+step*i+step/2,y:h-20,'text-anchor':'middle','font-size':10.5,fill:'#64748b'}).textContent=cfg.xLabels[i];
+    if(cfg.badges&&cfg.badges[i]&&cfg.badges[i].text){
+      var by=cfg.badges[i].y!==undefined?cfg.badges[i].y : pT+14;
+      svgChild(svg,'text',{x:pL+step*i+step/2,y:by,'text-anchor':'middle','font-size':11,fill:cfg.badges[i].color||'#334155','font-weight':800}).textContent=cfg.badges[i].text;
+    }
+  }
+}
+
+/* scatter rows: x=score 0..1, one row per skill */
+function scatterRows(el,rows){
+  var w=860,h=300,pL=200,pR=24,pT=30,pB=40;
+  var pw=w-pL-pR, ph=h-pT-pB;
+  var svg=makeSvg(el,w,h);
+  var ticks=5;
+  for(var t=0;t<=ticks;t++){
+    var v=t/ticks, y=pT+ph-(ph*v);
+    svgChild(svg,'line',{x1:pL,y1:y,x2:w-pR,y2:y,stroke:'#e2e8f0','stroke-width':1});
+    svgChild(svg,'text',{x:pL-8,y:y+4,'text-anchor':'end','font-size':11,fill:'#94a3b8'}).textContent=v.toFixed(1);
+  }
+  var x=function(v){return pL+v*pw;};
+  var rh=ph/rows.length;
+  rows.forEach(function(row,i){
+    var cy=pT+rh*(i+0.5);
+    var lo=Math.min.apply(null,row.points), hi=Math.max.apply(null,row.points);
+    svgChild(svg,'text',{x:pL-10,y:cy+4,'text-anchor':'end','font-size':12.5,fill:'#334155','font-weight':600}).textContent=row.name;
+    svgChild(svg,'text',{x:pL-10,y:cy+18,'text-anchor':'end','font-size':10.5,fill:'#94a3b8'}).textContent=row.note||'';
+    // range band
+    svgChild(svg,'line',{x1:x(lo),y1:cy,x2:x(hi),y2:cy,stroke:'#e2e8f0','stroke-width':14,'stroke-linecap':'round'});
+    svgChild(svg,'line',{x1:x(lo),y1:cy,x2:x(hi),y2:cy,stroke:row.color||'#818cf8','stroke-width':2,opacity:0.35});
+    row.points.forEach(function(v){
+      svgChild(svg,'circle',{cx:x(v),cy:cy,r:5,fill:row.color||'#4f46e5',stroke:'#fff','stroke-width':1.2});
+    });
+    var mean=row.points.reduce(function(a,b){return a+b;},0)/row.points.length;
+    svgChild(svg,'path',{d:'M'+(x(mean)-6)+','+cy+' L'+(x(mean)+6)+','+cy+' L'+x(mean)+','+(cy-9)+' Z',fill:'#0f172a'});
+    svgChild(svg,'text',{x:x(mean),y:cy-14,'text-anchor':'middle','font-size':10.5,fill:'#0f172a','font-weight':700}).textContent='均值'+mean.toFixed(2);
+    svgChild(svg,'text',{x:x(hi),y:cy-14,'text-anchor':'end','font-size':10.5,fill:'#64748b'}).textContent='极差'+(hi-lo).toFixed(2);
+  });
+  svgChild(svg,'text',{x:pL+pw/2,y:h-10,'text-anchor':'middle','font-size':11.5,fill:'#64748b'}).textContent='得分（hard，0~1）';
+}
+
+/* ====== 图 1：同技能多次评测散点（真实观测） ====== */
+scatterRows(document.getElementById('chartC1'),[
+  {name:'S0 空白技能（3条样本）',note:'baseline selection / step1 rollout / baseline test',color:'#dc2626',points:[0.0,0.3333,0.6667]},
+  {name:'S1 blank1 接受技能（34条样本）',note:'selection / step2 rollout / step3 rollout',color:'#4f46e5',points:[0.3324,0.3735,0.1882]},
+  {name:'blank2 current（3条样本）',note:'E4~E10 七次 rollout 观测',color:'#b45309',points:[0.6667,0.3333,0.4333,0.4333,0.5333,0.7667,0.7667]}
+]);
+
+/* ====== 图 2：蒙特卡洛 CDF ====== */
+lineChart(document.getElementById('chartC2'),{
+  w:860,h:330,yMax:1.0,yTicks:5,yFmt:function(v){return v.toFixed(2);},
+  xLabels:['.05','.10','.15','.20','.25','.30','.35','.40','.45','.50','.55','.60','.65','.70'],
+  series:[
+    {name:'n=3（3条样本）',color:'#dc2626',points:[0.863,0.763,0.640,0.600,0.443,0.440,0.266,0.261,0.187,0.155,0.145,0.082,0.082,0.031],dots:true},
+    {name:'n=34（34条样本）',color:'#4f46e5',points:[0.622,0.330,0.145,0.051,0.015,0.004,0.001,0.000,0.000,0.000,0.000,0.000,0.000,0.000],dots:true}
+  ],
+  scatter:[
+    {i:1,y:0.763,color:'#dc2626',label:'76% 概率 |Δ|>0.1',labelDy:-14},
+    {i:3,y:0.051,color:'#4f46e5',label:'5% 概率 |Δ|>0.2',labelDy:16}
+  ]
+});
+
+/* ====== 图 3：reward 分辨率（n=3 的 10 档） ====== */
+barChart(document.getElementById('chartC3'),{
+  w:860,h:310,yMax:1.0,yFmt:function(v){return v.toFixed(2);},
+  xLabels:['0.0','0.1','0.2','0.333','0.433','0.533','0.667','0.767','0.867','1.0'],
+  values:[
+    {v:0.0,color:'#e2e8f0',label:''},
+    {v:0.1,color:'#cbd5e1',label:'0.1'},
+    {v:0.2,color:'#cbd5e1',label:'0.2'},
+    {v:0.3333,color:'#a5b4fc',label:'0.333'},
+    {v:0.4333,color:'#4f46e5',label:'0.433 平台'},
+    {v:0.5333,color:'#a5b4fc',label:'0.533'},
+    {v:0.6667,color:'#7c3aed',label:'0.667'},
+    {v:0.7667,color:'#a5b4fc',label:'0.767'},
+    {v:0.8667,color:'#cbd5e1',label:'0.867'},
+    {v:1.0,color:'#059669',label:'1.0'}
+  ],
+  badges:[
+    {i:4,text:'小改进不可见',color:'#dc2626',y:26},
+    {i:6,text:'最终晋升分数',color:'#7c3aed',y:26}
+  ]
+});
+
+/* ====== 图 4：假平台期 ====== */
+lineChart(document.getElementById('chartC4'),{
+  w:900,h:340,yMax:1.0,yTicks:5,yFmt:function(v){return v.toFixed(2);},
+  xLabels:['E1','E2','E3','E4','E5','E6','E7','E8','E9','E10','最终评估'],
+  series:[
+    {name:'best selection（当前最优）',color:'#4f46e5',points:[0.3333,0.4333,0.4333,0.4333,0.4333,0.4333,0.4333,0.4333,0.4333,0.4333,0.6667],dots:true},
+    {name:'rollout（训练观测）',color:'#cbd5e1',dash:'5 5',width:2,points:[0.3333,0.6667,0.4333,0.6667,0.3333,0.4333,0.4333,0.5333,0.7667,0.7667],dots:false}
+  ],
+  scatter:[
+    {i:9,y:0.7667,color:'#b45309',label:'能力信号已到 0.767',labelDy:-12},
+    {i:10,y:0.6667,color:'#059669',shape:'star',label:'最终评估单次采样 0.667',labelDy:-16}
+  ]
+});
+
+/* ====== 图 5：注入守则 vs 后续 selection ====== */
+barChart(document.getElementById('chartC5'),{
+  w:860,h:330,yMax:1600,yFmt:function(v){return v;},
+  xLabels:['E2','E3','E4','E5','E6','E7','E8','E9','E10'],
+  values:[
+    {v:0,color:'#e2e8f0',label:'无'},
+    {v:831,color:'#db2777',label:'831'},
+    {v:1038,color:'#db2777',label:'1038'},
+    {v:1166,color:'#db2777',label:'1166'},
+    {v:0,color:'#e2e8f0',label:'无'},
+    {v:1062,color:'#db2777',label:'1062'},
+    {v:1269,color:'#db2777',label:'1269'},
+    {v:1283,color:'#db2777',label:'1283'},
+    {v:1475,color:'#b91c1c',label:'1475'}
+  ],
+  badges:[
+    {i:0,text:'selection 不变 0.433',color:'#64748b',y:26},
+    {i:1,text:'0.433',color:'#64748b',y:26},
+    {i:2,text:'0.433',color:'#64748b',y:26},
+    {i:3,text:'0.433',color:'#64748b',y:26},
+    {i:4,text:'无注入',color:'#64748b',y:26},
+    {i:5,text:'0.433',color:'#64748b',y:26},
+    {i:6,text:'0.433',color:'#64748b',y:26},
+    {i:7,text:'0.433',color:'#64748b',y:26},
+    {i:8,text:'最终评估 0.667(1次采样)',color:'#b91c1c',y:26}
+  ]
+});
+</script>
+</body>
+</html>
