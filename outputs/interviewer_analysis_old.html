@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SQL 智能用数 · SkillOpt 式「自发现自修正」旧法回顾报告</title>
+<style>
+:root{
+  --ink:#1e293b; --sub:#64748b; --line:#e2e8f0; --bg:#f6f7fb;
+  --card:#ffffff; --primary:#b45309; --primary-soft:#fff7ed;
+  --red:#dc2626; --red-soft:#fef2f2; --amber:#b45309; --amber-soft:#fffbeb;
+  --green:#059669; --green-soft:#ecfdf5; --slate:#334155;
+}
+*{box-sizing:border-box; margin:0; padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+  color:var(--ink); background:var(--bg); line-height:1.65; font-size:15px;}
+.wrap{max-width:1080px; margin:0 auto; padding:28px 22px 80px;}
+header.hero{background:linear-gradient(135deg,#78350f 0%,#b45309 50%,#d97706 100%); color:#fff; border-radius:18px;
+  padding:34px 36px 30px; box-shadow:0 12px 30px rgba(180,83,9,.28);}
+header.hero h1{font-size:26px; letter-spacing:.5px;}
+header.hero p.sub{margin-top:8px; color:#fef3c7; font-size:15px;}
+.kpis{display:grid; grid-template-columns:repeat(auto-fit,minmax(215px,1fr)); gap:14px; margin-top:22px;}
+.kpi{background:rgba(255,255,255,.14); border:1px solid rgba(255,255,255,.28); border-radius:12px; padding:13px 15px;}
+.kpi b{display:block; font-size:20px;}
+.kpi span{font-size:12.5px; color:#fef3c7;}
+nav.toc{display:flex; flex-wrap:wrap; gap:8px; margin:22px 0 6px;}
+nav.toc a{color:var(--primary); background:var(--primary-soft); border:1px solid #fed7aa; border-radius:999px;
+  padding:5px 13px; font-size:13px; text-decoration:none;}
+nav.toc a:hover{background:#fed7aa;}
+section.block{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:26px 28px; margin-top:22px;
+  box-shadow:0 2px 8px rgba(15,23,42,.04);}
+h2.sec{font-size:20px; display:flex; align-items:center; gap:10px; margin-bottom:4px;}
+h2.sec .no{background:var(--primary); color:#fff; border-radius:8px; font-size:14px; padding:2px 9px; flex:none;}
+h2.sec .tag{margin-left:auto; font-size:12px; color:var(--sub); font-weight:400; background:var(--bg); border:1px solid var(--line); padding:3px 10px; border-radius:999px;}
+p.lead{color:var(--sub); font-size:14.5px; margin:6px 0 16px;}
+h3.sub{font-size:16px; margin:20px 0 10px; padding-left:10px; border-left:4px solid var(--primary);}
+table.tbl{width:100%; border-collapse:collapse; font-size:13.5px; margin:10px 0 6px;}
+table.tbl th{background:#f1f5f9; color:var(--slate); font-weight:600; text-align:left; padding:8px 10px; border:1px solid var(--line);}
+table.tbl td{padding:8px 10px; border:1px solid var(--line); vertical-align:top;}
+table.tbl tr:nth-child(even) td{background:#fafbfe;}
+.ok{color:var(--green); font-weight:700;} .bad{color:var(--red); font-weight:700;} .warn{color:var(--amber); font-weight:700;}
+.badge{display:inline-block; border-radius:999px; padding:1px 9px; font-size:12px; font-weight:600;}
+.badge.red{background:var(--red-soft); color:var(--red); border:1px solid #fecaca;}
+.badge.gray{background:#f1f5f9; color:var(--sub); border:1px solid var(--line);}
+.badge.amber{background:var(--amber-soft); color:var(--amber); border:1px solid #fde68a;}
+.badge.green{background:var(--green-soft); color:var(--green); border:1px solid #a7f3d0;}
+.grid2{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
+@media(max-width:840px){.grid2{grid-template-columns:1fr;}}
+.chart-box{width:100%; overflow-x:auto;}
+.chart-box svg{display:block; width:100%; height:auto; min-width:620px;}
+.caption{font-size:12.5px; color:var(--sub); margin-top:6px;}
+.code{background:#0f172a; color:#e2e8f0; border-radius:10px; padding:13px 15px; font-size:12.5px; overflow-x:auto; font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; line-height:1.7; white-space:pre;}
+.note{background:var(--amber-soft); border:1px solid #fde68a; border-radius:12px; padding:12px 16px; font-size:13px; color:#78350f; margin-top:14px;}
+.note.blue{background:var(--primary-soft); border-color:#fed7aa; color:#7c2d12;}
+.callout{display:flex; gap:12px; background:linear-gradient(135deg,#fffbeb,#fef3c7); border:1px solid #fcd34d; border-radius:12px; padding:14px 18px; margin-top:14px;}
+.callout .ic{font-size:22px;}
+.callout p{font-size:14px; color:#78350f;}
+ul.plain{list-style:none;}
+ul.plain li{padding-left:22px; position:relative; margin-bottom:7px; font-size:14px;}
+ul.plain li:before{content:"▸"; position:absolute; left:4px; color:var(--primary);}
+.flow{display:flex; flex-wrap:wrap; align-items:stretch; gap:8px; margin:8px 0 4px;}
+.flow .box{flex:1 1 100px; background:#f8fafc; border:1.5px solid var(--line); border-radius:10px; padding:8px 7px; text-align:center; font-size:12px;}
+.flow .box b{display:block; font-size:11.5px; color:var(--primary); margin-bottom:2px;}
+.flow .box.hl{border-color:#f59e0b; background:var(--amber-soft);}
+.flow .box.green{border-color:#a7f3d0; background:var(--green-soft);}
+.flow .arrow{align-self:center; color:var(--sub); font-weight:700;}
+.mini-card{border:1px solid var(--line); border-radius:12px; padding:13px 15px; background:#fbfcfe;}
+.mini-card .k{font-size:12px; color:var(--sub);}
+.mini-card .v{font-size:18px; font-weight:700; margin-top:2px;}
+.mini-card .d{font-size:12.5px; color:var(--sub); margin-top:4px;}
+.timeline{position:relative; margin:14px 0 4px; padding-left:26px; border-left:3px solid #fcd34d;}
+.timeline .ev{position:relative; margin-bottom:16px;}
+.timeline .ev:before{content:""; position:absolute; left:-33px; top:5px; width:11px; height:11px; border-radius:50%; background:var(--primary); border:2px solid #fff; box-shadow:0 0 0 2px #fcd34d;}
+.timeline .ev b{display:block; font-size:14px;}
+.timeline .ev span{font-size:12.5px; color:var(--sub);}
+footer{margin-top:26px; font-size:12.5px; color:var(--sub); border-top:1px solid var(--line); padding-top:16px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <h1>SQL 智能用数 · SkillOpt 式「自发现自修正」旧法回顾报告</h1>
+  <p class="sub">以 2025-08-11 Medium 文章「Training AI Agents to Write and Self-correct SQL with Reinforcement Learning」（作者 Yuge Zhang，Agent Lightning + verl + LangGraph，GRPO 训练）为参照，回顾 GRPO 流行之前、SkillOpt 式外挂自修正方法在用数产品适配不同模型 / 不同数据库时的价值，以及它为何在 GRPO 时代「一般不再需要」。</p>
+  <div class="kpis">
+    <div class="kpi"><b>write → execute → check ⇄ rewrite</b><span>文章方法与 SkillOpt 共享的 agent 闭环骨架：每次执行反馈都在暴露 SQL 缺陷</span></div>
+    <div class="kpi"><b>M 模型 × D 数据库</b><span>旧法战场：用数产品早期每个「模型 × 库方言」组合都是一轮新的自发现/自修正积累</span></div>
+    <div class="kpi"><b>1 轮 80.2% → 3 轮 80.4%</b><span>GRPO 时代分水岭（文章 Qwen2.5-Coder-3B @4096ctx）：语法能力进权重后，自修正轮次收益递减</span></div>
+    <div class="kpi"><b>长尾仍需技能优化</b><span>无法微调/私有库/长尾方言/小模型/评估信号难定义时，SkillOpt 式外挂优化仍是必要补充</span></div>
+  </div>
+</header>
+
+<nav class="toc">
+  <a href="#ref">1 文章方法（GRPO 时代形态）</a>
+  <a href="#old">2 旧方法（GRPO 之前的外挂自修正）</a>
+  <a href="#watershed">3 分水岭与「为什么不需要了」</a>
+  <a href="#evidence">4 仓库证据链与结论</a>
+</nav>
+<!-- ============ 1 文章方法 ============ -->
+<section class="block" id="ref">
+  <h2 class="sec"><span class="no">1</span>参照文章：把「写 SQL + 自修正」做完形闭环训进权重（GRPO 时代形态）<span class="tag">Agent Lightning + verl + LangGraph，2025-08</span></h2>
+  <p class="lead">文章没有发明「写→执行→查→改」的循环（这套循环在 GRPO 之前就是用数产品里外挂自修正方法的骨架），它的贡献是用 <b>GRPO 强化学习把闭环本身训练进模型权重</b>：不微调一次生成，而是整条「自修正轨迹」参与优化。这套方法与 SkillOpt 属于同一家族 —— 差在能力被放在「模型参数」还是「外部技能/提示词」里。</p>
+
+  <h3 class="sub">1.1 Agent 状态机：与 SkillOpt 同源的闭环骨架</h3>
+  <div class="flow">
+    <div class="box hl"><b>write_query</b>按问题+表结构生成初始 SQL</div>
+    <div class="arrow">→</div>
+    <div class="box"><b>execute_query</b>在目标库真实执行</div>
+    <div class="arrow">→</div>
+    <div class="box"><b>check_query</b>检查执行结果/报错，判定对错</div>
+    <div class="arrow">↻ 有错</div>
+    <div class="box green"><b>rewrite_query</b>带上一步反馈改写 SQL</div>
+    <div class="arrow">→</div>
+    <div class="box"><b>END</b>正确或 max_turns 上限</div>
+  </div>
+  <p style="font-size:13.5px; color:var(--sub); margin-top:8px;">对应到 SkillOpt 抽象：<code>write/rewrite = rollout</code>（生成+执行）、<code>check = 评估信号</code>（可执行性 + 结果正确性）、执行错误 = <code>失败轨迹</code>（reflect 的输入）、改写修复 = <code>edit</code>、多轮收敛 = <code>gate 验收</code>。差别只在于：SkillOpt 的「edit」批量写入技能文档，文章的「edit」直接更新模型权重（只训 write/rewrite 步，check 共享权重不单独训）。</p>
+
+  <h3 class="sub">1.2 训练架构：client-server 分布式 RL，奖励来自「执行结果」</h3>
+  <div class="grid2">
+    <div>
+      <table class="tbl">
+        <tr><th>组件</th><th>作用</th></tr>
+        <tr><td>Training Server（agentlightning.verl）</td><td>GRPO 训练循环（<code>adv_estimator=grpo</code>），托管 OpenAI 兼容端点的实时权重</td></tr>
+        <tr><td>Agent Clients（sql_agent.py ×16）</td><td>跑 LangGraph 状态机，获取任务→生成→执行→查→改→导出轨迹→算 reward→回传</td></tr>
+        <tr><td>实验配置</td><td>Qwen2.5-Coder-3B / Llama-3.2-Instruct，Spider V1（~8000 训练 / 2000 测试，评估抽 500），n=4 采样，lr=1e-6，2 epochs，max_turns=3</td></tr>
+        <tr><td>奖励信号</td><td>outcome-based：以「最终能否执行 / 结果是否正确」为唯一奖励 —— 与旧方法里「执行反馈即缺陷信号」同一哲学</td></tr>
+      </table>
+    </div>
+    <div>
+      <div class="code">python -m agentlightning.verl \
+  algorithm.adv_estimator=grpo \
+  actor_rollout_ref.rollout.n=4 \
+  data.train_files=data/train_spider.parquet \
+  actor_rollout_ref.model.path=Qwen/Qwen2.5-Coder-3B-Instruct \
+  actor_rollout_ref.actor.optim.lr=1e-6 \
+  trainer.total_epochs=2 ...</div>
+      <p class="caption" style="margin-top:6px;">训练命令要点（摘录）：GRPO、n=4、1e-6 学习率、2 个 epoch —— 「语法稳定性」通过这些超参被写进权重。</p>
+    </div>
+  </div>
+
+  <h3 class="sub">1.3 文章关键数据：自修正收益被训练后「压进」单轮精度</h3>
+  <div class="grid2">
+    <div>
+      <div class="chart-box" id="chartA1"></div>
+      <p class="caption">图 1（数据来自文章评估）：同一模型 1 轮 vs 3 轮的生成精度。@2048ctx：73.2%→76.4%（+3.2pt，自修正还有肉）；@4096ctx：80.2%→80.4%（+0.2pt，几乎无增益）—— 上下文一足，多轮自修正基本被「一轮写对」取代。</p>
+    </div>
+    <div>
+      <div class="chart-box" id="chartA2"></div>
+      <p class="caption">图 2（数据来自文章）：把 check 也纳入训练：76.4%→77.6%（+1.2pt），但训练时间近乎翻倍 —— 显然不如把力气花在 write/rewrite 上。同时训练后轨迹收敛变快：transitions 1.65→1.44、3.30→2.60，即「模型学会了更少次改写就写对」。</p>
+    </div>
+  </div>
+  <ul class="plain">
+    <li>「RL training consistently boosts accuracy」是第一结论：每个模型从 initial 到 final 都有提升 —— 但这提升是<b>权重内化</b>获得的，与旧方法「把修复规则写进提示词」殊途同归，落点不同</li>
+    <li>「Longer context helps」：2048→4096 把 1 轮精度从 73.2% 拉到 80.2% —— 长上下文本身补掉了不少「需要自修正才能补」的知识</li>
+    <li>「More turns can help, but not always」：3 轮的上限收益随模型变强而消失 —— 这正是「GRPO 流行后一般不需要额外自修正」的数字证据</li>
+  </ul>
+</section>
+<!-- ============ 2 旧方法 ============ -->
+<section class="block" id="old">
+  <h2 class="sec"><span class="no">2</span>旧方法（GRPO 之前）：SkillOpt 式「外挂」自发现自修正，早期用数产品每天都在用它适配模型与数据库<span class="tag">本篇报告核心</span></h2>
+  <p class="lead">在 GRPO 流行之前，「把语法能力训进权重」这条路走不通（微调成本高、数据少、模型迭代快）。用数产品实际做的是<b>不动权重、只动技能/提示词层</b>：每次 SQL 缺陷被真实执行暴露出来，就把它总结成一条修复规则沉淀进技能文档，下次生成直接带上 —— 这正是 SkillOpt 的训练循环，只是当年没有这个框架名，是产品里手工/半自动在跑。</p>
+
+  <h3 class="sub">2.1 为什么必须「迭代自发现」：组合爆炸 + 可执行性才是唯一真相</h3>
+  <div class="chart-box" id="chartB1"></div>
+  <p class="caption">图 3（示意结构，非特定产品数据）：用数产品要覆盖「多个大模型 × 多种数据库方言」的矩阵。每个格子的错误模式都不一样：模型 A 的 SQL 习惯 ≠ 模型 B；MySQL 能跑 ≠ ClickHouse/Doris/Hive 能跑。旧方法的价值 = 在一个格子里积累的「缺陷清单」可以自动总结并注入下一个格子的生成，把 M×D 次人工排查变成「M×D 次自动迭代」。</p>
+  <div class="grid2">
+    <div>
+      <h4 class="mini">典型 SQL 缺陷/语法兼容问题的类别（示意清单，用来理解「自发现对象」）</h4>
+      <table class="tbl">
+        <tr><th>缺陷类别</th><th>示例（不同方言表现）</th><th>为何模型原生易犯</th></tr>
+        <tr><td>分页语法</td><td>LIMIT/OFFSET（MySQL、PG）vs LIMIT n,m vs 无（某些 MPP）</td><td>训练数据以主流方言为主</td></tr>
+        <tr><td>保留字/大小写</td><td>order、group、rank、rows 等作列名需反引号/双引号，且方言引号规则不同</td><td>NL→SQL 转换忽略方言词法</td></tr>
+        <tr><td>函数命名差异</td><td>IFNULL vs COALESCE vs nvl；date_add 语义差；字符串函数族差异</td><td>多方言函数表无法全记</td></tr>
+        <tr><td>类型/隐式转换</td><td>字符串→数字、时间类型比较、NaN/Null 语义差异</td><td>DDL 类型信息未被利用</td></tr>
+        <tr><td>NULL 语义</td><td>=NULL vs IS NULL；COUNT(列) 与 COUNT(*) 不同</td><td>伪 SQL 混淆</td></tr>
+        <tr><td>执行器限制</td><td>子查询嵌套深度、CTE 支持、窗口函数实现差异</td><td>模型不知道目标执行器能力边界</td></tr>
+        <tr><td>版本/配置差异</td><td>同库不同版本：函数废弃、sql_mode、时区</td><td>知识时滞</td></tr>
+      </table>
+    </div>
+    <div>
+      <h4 class="mini">旧方法与 SkillOpt 六步的对应关系</h4>
+      <table class="tbl">
+        <tr><th>旧方法动作</th><th>SkillOpt 阶段</th></tr>
+        <tr><td>生成 SQL 并执行</td><td class="ok">ROLLOUT（生成+真实执行）</td></tr>
+        <tr><td>报错/结果错误 → 反思原因</td><td class="ok">REFLECT（失败轨迹→edit）</td></tr>
+        <tr><td>修复规则去重、合并</td><td class="ok">AGGREGATE + SELECT（控量）</td></tr>
+        <tr><td>规则写入技能/提示词文档</td><td class="ok">UPDATE（patch 技能）</td></tr>
+        <tr><td>用回归集验证「修复有效且无回退」</td><td class="ok">EVALUATE（gate 验收）</td></tr>
+      </table>
+      <p style="font-size:13px; color:var(--sub);">差别：旧方法绝大多数时候跑在「无权重更新 + 人工兜底」的轻量模式；SkillOpt 把它自动化、框架化了 —— 这也解释了为什么 SkillOpt 的价值更多在「技能/提示词优化」而非「SQL 语法」。</p>
+    </div>
+  </div>
+
+  <h3 class="sub">2.2 新旧两种范式的代价差别：一次适配 vs 一轮又一轮</h3>
+  <div class="grid2">
+    <div>
+      <div class="chart-box" id="chartB2"></div>
+      <p class="caption">图 4（示意曲线）：旧方法在每个「模型×库」组合上的典型路径 —— 上线初期缺陷密集暴露（可执行性差），靠自发现+沉淀快速收敛；但每次换模型或换库都要重来一小段（知识是模型相关/方言相关的）。GRPO 之后，主流组合这条曲线几乎变成「开箱即用」，只剩长尾组合需要外挂。</p>
+    </div>
+    <div>
+      <h4 class="mini">旧方法的成本真相（为什么它当时必须存在、又为何被取代）</h4>
+      <ul class="plain">
+        <li><b>必须存在</b>：当时模型（尤其 API 模型/本地小模型）的方言知识不可靠，真实执行能立刻暴露缺陷 —— 「可执行性 = 最便宜的自动验收信号」，这比人工 review 便宜一个量级</li>
+        <li><b>持续投入</b>：每适配一个模型/一个库，都要跑一遍「缺陷发现→规则沉淀→回归验证」，规则库跟着模型和库版本走，维护成本线性增长</li>
+        <li><b>知识是外挂的、可解释的</b>：这是它最大的优点 —— 每条规则都能查、能改、能审计</li>
+      </ul>
+    </div>
+  </div>
+  <div class="callout"><div class="ic">📌</div><p>旧方法定位总结：它不是「训练模型」，而是「给生成器配一个会自学习的纠错器」。GRPO 之前，这是把「可执行 SQL 知识」注入产品的唯一低成本杠杆；但它把知识放在模型外面，天然有维护负担 —— 这正是 GRPO 时代它被边缘化的结构性原因。</p></div>
+</section>
+<!-- ============ 3 分水岭 ============ -->
+<section class="block" id="watershed">
+  <h2 class="sec"><span class="no">3</span>分水岭：GRPO 强化学习流行后，为什么「一般不需要」再额外用类似方法优化 agent<span class="tag">能力从技能层搬进权重层</span></h2>
+  <p class="lead">GRPO（以及 RLVR 一族）把「写对 / 改对」的偏好直接优化进权重 —— 文章就是范本：把 write/rewrite 整条自修正轨迹用执行结果做 reward 训进 Qwen2.5-Coder-3B。效果是：<b>单轮就能写对，自修正从「必需品」降级为「保险丝」</b>。</p>
+
+  <h3 class="sub">3.1 文章数字支持「不再需要」的三个论据</h3>
+  <div class="grid2">
+    <div>
+      <div class="chart-box" id="chartC1"></div>
+      <p class="caption">图 5（文章数据）：同模型不同上下文的 1 轮 vs 3 轮精度。长上下文 + 训练后，1 轮已接近 3 轮上限 —— 自修正轮次的价值被权重内化吸收。</p>
+    </div>
+    <div>
+      <ul class="plain">
+        <li><b>论据一 · 一轮就够</b>：@4096ctx 1 轮 80.2% vs 3 轮 80.4%，差 0.2pt —— 产品里完全可以接受「开一轮直出」，省掉 agent 循环的延迟与 token</li>
+        <li><b>论据二 · 自修正收敛</b>：训练后 transitions 从 1.65/3.30 降到 1.44/2.60 —— 模型「更少改写就写对」，说明修正能力已被内化为生成习惯</li>
+        <li><b>论据三 · 外挂收益递减且昂贵</b>：把 check 也训进权重只换来 +1.2pt（76.4→77.6），训练时间却翻倍 —— 边际上「技能层再修补」已经拼不过「权重层砸预算」</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3 class="sub">3.2 外挂修正层 vs 权重内化：一张图看清「时代切换」</h3>
+  <table class="tbl">
+    <tr><th>维度</th><th>旧方法（SkillOpt 式外挂）· GRPO 之前</th><th>文章做法（GRPO 权重内化）· GRPO 之后</th></tr>
+    <tr><td>能力载体</td><td>技能/提示词文档里的修复规则、few-shot 示例</td><td>模型参数（write/rewrite 策略）</td></tr>
+    <tr><td>边际适配成本</td><td>每「模型×库」组合一轮自发现+回归，规则库随模型/库版本维护</td><td>一次 GRPO 训练（GPU、数据、2 epochs），之后开箱即用</td></tr>
+    <tr><td>可解释性</td><td class="ok">高：每条规则可查可改可审计</td><td class="warn">低：知识藏在权重里</td></tr>
+    <tr><td>稳定性/泛化</td><td class="warn">易过拟合当前模型与方言；换模型规则可能失效</td><td class="ok">跨问题分布更稳，长上下文 + 训练后 1 轮即达上限</td></tr>
+    <tr><td>运行成本</td><td class="warn">每轮生成都带大提示词（规则+示例），还要跑 agent 循环</td><td class="ok">单轮直出，无 agent 循环</td></tr>
+    <tr><td>训练门槛</td><td class="ok">低：无需 GPU 集群，轻量迭代</td><td class="warn">高：需要 verl/vLLM/GPU 与数据管线</td></tr>
+  </table>
+  <div class="callout"><div class="ic">⚖️</div><p>结论：GRPO 之后，「能不能写对 SQL」这件事的默认答案变成了「看权重」；外挂技能优化退到四个角落里：<b>① 不能/不愿微调的 API 模型；② 私有库、内部库、长尾方言（无公开训练数据）；③ 小型/私有模型没有 GPU 预算；④ 技能优化的对象本来就不是语法，而是产品规则/评分细则/输出格式这类「可解释的业务知识」</b> —— 后者的代表正是本仓库的 interviewer 实验。</p></div>
+</section>
+
+<!-- ============ 4 仓库证据链 ============ -->
+<section class="block" id="evidence">
+  <h2 class="sec"><span class="no">4</span>仓库证据链：SkillOpt 家族方法今天在做什么，以及它与这篇文章的关系<span class="tag">outputs/searchqa_quickstart + interviewer 两篇报告</span></h2>
+  <p class="lead">本仓库的 searchqa / interviewer 实验，就是「旧方法」框架化之后的当代形态：同样的 agent 闭环、同样没有权重更新、同样的「失败轨迹→edit→gate 验收」。它们的表现恰好印证了分水岭论断 —— 在通用/可训练领域，外挂优化收益有限；在「业务技能」领域，它仍是不可替代的杠杆。</p>
+
+  <div class="grid2">
+    <div>
+      <div class="chart-box" id="chartD1"></div>
+      <p class="caption">图 6（本仓库 outputs/searchqa_quickstart 真实数据）：SkillOpt 在 searchqa（文本问答）环境 400 样本、10 步训练：selection 0.480→0.515（+3.5pt）、test 0.494→0.537（+4.3pt），但 10 步里 9 步 REJECT、仅 1 步 ACCEPT —— 收益存在，但相对 GRPO 权重训练的幅度（文章 73→80）明显更小、更慢。</p>
+    </div>
+    <div>
+      <div class="chart-box" id="chartD2"></div>
+      <p class="caption">图 7（前两篇 interviewer 报告数据汇总）：同样一套方法，在「业务技能」任务上收益显著：27 分钟学出与人工模板 8/8 一致的评分细则（selection 0.274→0.332）；3 条超少样本从 0 分到 best 0.667 / test 0.667→0.767 —— 这类「规则、守则、输出格式」正是权重内化力所不及、而技能优化最擅长的地方。</p>
+    </div>
+  </div>
+
+  <div class="timeline">
+    <div class="ev"><b>早期（GRPO 之前）· 用数产品</b><span>每个「模型 × 库」组合一轮 SkillOpt 式外挂自发现/自修正：SQL 缺陷→规则沉淀→回归验证，语法兼容知识住在提示词层</span></div>
+    <div class="ev"><b>GRPO/RLVR 兴起（2024H2 起）</b><span>verl 等框架把 GRPO 变成标配；可执行性/结果正确性直接当 reward，语法能力开始进权重</span></div>
+    <div class="ev"><b>2025-08 · 本文</b><span>Agent Lightning + verl + LangGraph：整条 write→execute→check→rewrite 闭环用 GRPO 训进 Qwen2.5-Coder-3B，1 轮 80.2% 逼近 3 轮 80.4%</span></div>
+    <div class="ev"><b>现在 · 本仓库</b><span>同一闭环自动化的 SkillOpt，专注「权重内化力所不及」的业务技能：评分细则（interviewer 34 样本 8/8 对齐人工模板）、超少样本守则沉淀（3 样本 0→0.667）、问答提取规则（searchqa）</span></div>
+  </div>
+
+  <h3 class="sub">4.1 三篇报告的呼应关系</h3>
+  <table class="tbl">
+    <tr><th>报告</th><th>对象</th><th>核心结论</th><th>与本文（旧法回顾）的关系</th></tr>
+    <tr><td>interviewer_analysis.html</td><td>interviewer_blank（34 样本）</td><td class="ok">27 分钟学出与人工模板 8/8 一致的评分细则</td><td>证明「外挂技能优化」在业务技能上依然高效 —— 这正是 GRPO 内化不了的那类知识</td></tr>
+    <tr><td>interviewer_analysis_weak.html</td><td>interviewer_blank2（3 样本）+ 机制审计</td><td class="warn">评测噪声、slow update 后门、闭环成本 —— 三处弱点</td><td>解释「为什么通用场景它被 GRPO 取代」：信号脏、有后门、边际成本高；也给出 GRPO 时代仍需它的场景清单</td></tr>
+    <tr><td><b>interviewer_analysis_old.html（本篇）</b></td><td>SQL 用数场景 · 旧法回顾</td><td>GRPO 之前它一直在用；GRPO 之后语法进权重、一般不再需要；长尾仍需要</td><td>本篇：把前两篇的方法放到时代坐标里（前 GRPO 主流 → 现长尾）</td></tr>
+  </table>
+
+  <div class="note"><b>诚实说明：</b>① 文章原文（Medium）已被 Cloudflare 拦截，本报告基于用户提供的文章全文文本（11360 字符）撰写，所有文章数字（80.2/80.4/76.4/73.2/77.6、transitions 1.65→1.44 等）均直接引自该文本；②「早期用数产品」部分没有可公开的量化数据，图中使用「示意」标注，结论为定性；③ searchqa 数据为仓库真实实验（outputs/searchqa_quickstart/summary.json），spider 精度为文章数据，二者不可直接对比（任务不同），仅用于说明「同类方法在不同任务上的收益量级差异」。</div>
+
+  <div class="callout"><div class="ic">🏁</div><p>最终结论一条线：<b>SQL 语法兼容能力从「外挂技能」搬进「模型权重」，是 GRPO 时代最划算的一笔迁移</b>——它把用数产品从「每个模型每个库都要养一套纠错规则」里解放出来。SkillOpt 式方法没有消失，它退到了真正不可替代的位置：处理那些 GRPO 训不进去的、可解释的、会随业务变化的「技能知识」（评分细则、输出守则、产品规则、评估口径）。读懂这篇旧法回顾，就懂了 SkillOpt 今天该被用在哪儿。</p></div>
+</section>
+
+<footer>
+  <b>参考与数据来源：</b>① Medium 文章原文全文（用户提供 training-sql-agent.txt）—— 状态机、训练架构、全部精度与效率数字；② 本仓库 outputs/searchqa_quickstart/summary.json —— searchqa 真实实验指标；③ 同仓库 outputs/interviewer_blank（第一份）与 outputs/interviewer_blank2（第二份）两份报告的结论汇总；④ 「早期用数产品」部分的适配矩阵、收敛曲线为示意（标注于图注），无伪造的量化声明。
+</footer>
+</div>
+<script>
+/* ---------- helpers ---------- */
+function makeSvg(el,w,h){ el.innerHTML='';
+  var svg=document.createElementNS('http://www.w3.org/2000/svg','svg');
+  svg.setAttribute('viewBox','0 0 '+w+' '+h); svg.setAttribute('xmlns','http://www.w3.org/2000/svg');
+  el.appendChild(svg); return svg; }
+function svgChild(svg,tag,attrs){ var n=document.createElementNS('http://www.w3.org/2000/svg',tag);
+  for(var k in attrs) n.setAttribute(k,attrs[k]); svg.appendChild(n); return n; }
+
+function lineChart(el,cfg){
+  var w=cfg.w||820,h=cfg.h||320,pL=58,pR=18,pT=26,pB=46,pw=w-pL-pR,ph=h-pT-pB,n=cfg.xLabels.length;
+  var svg=makeSvg(el,w,h), yMax=cfg.yMax||1, ticks=cfg.yTicks||4;
+  for(var t=0;t<=ticks;t++){ var v=yMax*t/ticks,y=pT+ph-(ph*v/yMax);
+    svgChild(svg,'line',{x1:pL,y1:y,x2:w-pR,y2:y,stroke:'#e2e8f0','stroke-width':1});
+    svgChild(svg,'text',{x:pL-8,y:y+4,'text-anchor':'end','font-size':11,fill:'#94a3b8'}).textContent=(cfg.yFmt||function(v){return v.toFixed(2)})(v); }
+  for(var i=0;i<n;i++){ var x=pL+pw*(i/(n-1));
+    svgChild(svg,'line',{x1:x,y1:pT,x2:x,y2:pT+ph,stroke:'#f1f5f9','stroke-width':1});
+    svgChild(svg,'text',{x:x,y:h-18,'text-anchor':'middle','font-size':11,fill:'#64748b'}).textContent=cfg.xLabels[i]; }
+  var sx=function(i){return pL+pw*(i/(n-1));}, sy=function(v){return pT+ph-(ph*v/yMax);};
+  (cfg.series||[]).forEach(function(ser){
+    var seg=[],run=[];
+    ser.points.forEach(function(v,i){ if(v==null){if(run.length){seg.push(run.slice());}run=[];return;} run.push([sx(i),sy(v)]); });
+    if(run.length) seg.push(run);
+    seg.forEach(function(pts){ svgChild(svg,'polyline',{points:pts.map(function(p){return p[0]+','+p[1];}).join(' '),fill:'none',stroke:ser.color,'stroke-width':ser.width||2.5,'stroke-dasharray':ser.dash||'','stroke-linecap':'round','stroke-linejoin':'round'}); });
+    if(ser.dots!==false) ser.points.forEach(function(v,i){ if(v==null)return; svgChild(svg,'circle',{cx:sx(i),cy:sy(v),r:2.8,fill:ser.color}); });
+  });
+  (cfg.scatter||[]).forEach(function(m){ var x=sx(m.i),y=sy(m.y);
+    svgChild(svg,'circle',{cx:x,cy:y,r:4.5,fill:m.color||'#059669',stroke:'#fff','stroke-width':1.4});
+    if(m.label) svgChild(svg,'text',{x:x,y:y-10,'text-anchor':'middle','font-size':11,fill:m.color||'#334155','font-weight':600}).textContent=m.label; });
+  if(cfg.legend!==false){ var lx=pL,ly=pT-10;
+    (cfg.series||[]).forEach(function(ser){
+      svgChild(svg,'line',{x1:lx,y1:ly-3,x2:lx+18,y2:ly-3,stroke:ser.color,'stroke-width':3,'stroke-dasharray':ser.dash||''});
+      svgChild(svg,'text',{x:lx+24,y:ly,'font-size':11.5,fill:'#475569'}).textContent=ser.name; lx+=24+ser.name.length*7; }); }
+}
+
+function barChart(el,cfg){
+  var w=cfg.w||820,h=cfg.h||300,pL=56,pR=18,pT=30,pB=48,pw=w-pL-pR,ph=h-pT-pB,n=cfg.xLabels.length;
+  var yMax=cfg.yMax||Math.max.apply(null,cfg.values.map(function(x){return x.v;}))*1.15;
+  var svg=makeSvg(el,w,h), ticks=cfg.yTicks||4;
+  for(var t=0;t<=ticks;t++){ var v=yMax*t/ticks,y=pT+ph-(ph*v/yMax);
+    svgChild(svg,'line',{x1:pL,y1:y,x2:w-pR,y2:y,stroke:'#e2e8f0','stroke-width':1});
+    svgChild(svg,'text',{x:pL-8,y:y+4,'text-anchor':'end','font-size':11,fill:'#94a3b8'}).textContent=(cfg.yFmt||function(v){return Math.round(v)})(v); }
+  var bw=pw/n*0.58, step=pw/n;
+  for(var i=0;i<n;i++){ var x=pL+step*i+(step-bw)/2, barH=Math.max(0.8,ph*cfg.values[i].v/yMax), y=pT+ph-barH;
+    svgChild(svg,'rect',{x:x,y:y,width:bw,height:barH,fill:cfg.values[i].color||'#b45309',rx:3});
+    if(cfg.values[i].label!==undefined&&cfg.values[i].label!==null) svgChild(svg,'text',{x:x+bw/2,y:y-6,'text-anchor':'middle','font-size':10.5,fill:cfg.values[i].labelColor||'#334155','font-weight':600}).textContent=cfg.values[i].label;
+    svgChild(svg,'text',{x:pL+step*i+step/2,y:h-20,'text-anchor':'middle','font-size':11,fill:'#64748b'}).textContent=cfg.xLabels[i];
+    if(cfg.badges&&cfg.badges[i]) svgChild(svg,'text',{x:pL+step*i+step/2,y:pT+14,'text-anchor':'middle','font-size':11,fill:cfg.badges[i].color||'#334155','font-weight':800}).textContent=cfg.badges[i].text; }
+}
+
+/* mini bar rows: groups of before/after bars, per-group scale, value labels */
+function miniBarRows(el,cfg){
+  var w=cfg.w||860,h=cfg.h||(cfg.groups.length*66+40), pL=250,pR=30,pT=18;
+  var bw=w-pL-pR, rowH=(h-pT-10)/cfg.groups.length;
+  var svg=makeSvg(el,w,h);
+  cfg.groups.forEach(function(g,i){
+    var cy=pT+rowH*(i+0.62);
+    svgChild(svg,'text',{x:pL-10,y:cy-6,'text-anchor':'end','font-size':12,'fill':'#334155','font-weight':600}).textContent=g.name;
+    svgChild(svg,'text',{x:pL-10,y:cy+8,'text-anchor':'end','font-size':10,'fill':'#94a3b8'}).textContent=g.unit||'';
+    var mx=Math.max.apply(null,g.bars.map(function(b){return b.v;})), acc=0;
+    g.bars.forEach(function(b,j){
+      var seg=bw*0.5*b.v/mx; // leave room for two bars
+      var x=pL+acc, barH=Math.max(4,seg);
+      svgChild(svg,'rect',{x:x,y:cy-barH,width:seg,height:barH,fill:b.color||(j%2?'#059669':'#94a3b8'),rx:2});
+      svgChild(svg,'text',{x:x+seg+4,y:cy-2,'font-size':10.5,fill:'#475569','font-weight':700}).textContent=b.label+' '+b.v;
+      acc+=seg+8;
+    });
+  });
+}
+
+function htmlOf(el){ return el; }
+/* matrix grid (HTML) for M x D adaptation */
+function matrixGrid(el,cfg){
+  el.innerHTML='';
+  var box=document.createElement('div');
+  box.style.cssText='display:grid;grid-template-columns:150px repeat('+cfg.cols.length+',1fr);gap:6px;align-items:center;margin:10px 0 6px;';
+  box.appendChild(document.createElement('b'));
+  cfg.cols.forEach(function(c){ var t=document.createElement('b'); t.textContent=c; t.style.cssText='text-align:center;font-size:12px;'; box.appendChild(t); });
+  cfg.rows.forEach(function(r,ri){
+    var lab=document.createElement('div'); lab.textContent=r; lab.style.cssText='font-size:12.5px;font-weight:600;';
+    box.appendChild(lab);
+    cfg.cols.forEach(function(_,ci){
+      var cell=document.createElement('div');
+      var hot=(ri+ci)%3===2;
+      cell.textContent=hot?'★ 新一轮自发现':'↻ 迭代适配';
+      cell.style.cssText='text-align:center;font-size:11px;border-radius:8px;padding:8px 4px;border:1.5px solid '+(hot?'#f59e0b':'#e2e8f0')+';background:'+(hot?'#fffbeb':'#f8fafc')+';color:'+(hot?'#b45309':'#64748b')+';';
+      box.appendChild(cell);
+    });
+  });
+  el.appendChild(box);
+  var leg=document.createElement('div');
+  leg.style.cssText='font-size:12px;color:#64748b;margin-top:6px;';
+  leg.textContent='每个「模型 × 数据库」组合都需要一轮外挂适配与回归；GRPO 之后主流组合（绿）开箱即用，只剩长尾组合（★）需要外挂。';
+  el.appendChild(leg);
+}
+
+/* ====== 图 1：1轮 vs 3轮（文章数据） ====== */
+barChart(document.getElementById('chartA1'),{
+  w:640,h:300,yMax:100,yFmt:function(v){return v.toFixed(0);},
+  xLabels:['1轮 @2048','3轮 @2048','1轮 @4096','3轮 @4096'],
+  values:[
+    {v:73.2,color:'#cbd5e1',label:'73.2%'},
+    {v:76.4,color:'#b45309',label:'76.4%'},
+    {v:80.2,color:'#059669',label:'80.2%'},
+    {v:80.4,color:'#059669',label:'80.4%'}
+  ],
+  badges:[
+    {i:0,text:'',color:'#64748b'},
+    {i:1,text:'+3.2pt（还有肉）',color:'#b45309'},
+    {i:2,text:'',color:'#64748b'},
+    {i:3,text:'+0.2pt（几乎没了）',color:'#059669'}
+  ]
+});
+
+/* ====== 图 2：check 训练 + transitions（文章数据） ====== */
+miniBarRows(document.getElementById('chartA2'),{
+  w:640,h:210,
+  groups:[
+    {name:'训练是否加入 check（精度 %）',unit:'@2048ctx 3轮',bars:[{label:'不加入',v:76.4,color:'#94a3b8'},{label:'加入',v:77.6,color:'#059669'}]},
+    {name:'训练后轨迹收敛（1轮组 @2048）',unit:'transitions/条',bars:[{label:'训练前',v:1.65,color:'#94a3b8'},{label:'训练后',v:1.44,color:'#059669'}]},
+    {name:'训练后轨迹收敛（3轮组 @2048）',unit:'transitions/条',bars:[{label:'训练前',v:3.30,color:'#94a3b8'},{label:'训练后',v:2.60,color:'#059669'}]}
+  ]
+});
+
+/* ====== 图 3：适配矩阵（示意） ====== */
+matrixGrid(document.getElementById('chartB1'),{
+  cols:['MySQL','PostgreSQL','ClickHouse','Doris/Hive'],
+  rows:['API 大模型 A','API 大模型 B','本地 7B 小模型']
+});
+
+/* ====== 图 4：缺陷收敛曲线（示意） ====== */
+lineChart(document.getElementById('chartB2'),{
+  w:640,h:320,yMax:100,yFmt:function(v){return v.toFixed(0);},
+  xLabels:['上线','2','3','4','5','6','7','8','9','10'],
+  series:[
+    {name:'旧方法·新组合（缺陷自发现收敛）',color:'#b45309',points:[55,62,70,76,80,83,85,86,87,88],dots:true},
+    {name:'旧方法·中途换库（回落再收敛）',color:'#d97706',dash:'5 4',width:2,points:[88,60,66,72,77,81,84,86,87,88],dots:false},
+    {name:'GRPO 后·主流组合（开箱即用）',color:'#059669',points:[96,96,96,97,97,97,97,97,97,98],dots:false}
+  ],
+  scatter:[
+    {i:0,y:96,color:'#059669',label:'可执行率≈96%'},
+    {i:1,y:60,color:'#d97706',label:'换库回落'}
+  ],
+  legend:true
+});
+
+/* ====== 图 5：多轮自修正增量（文章数据） ====== */
+barChart(document.getElementById('chartC1'),{
+  w:640,h:300,yMax:4,yFmt:function(v){return v.toFixed(1);},
+  xLabels:['3轮 - 1轮 @2048','3轮 - 1轮 @4096'],
+  values:[
+    {v:3.2,color:'#b45309',label:'+3.2pt'},
+    {v:0.2,color:'#059669',label:'+0.2pt'}
+  ],
+  badges:[
+    {i:0,text:'仍需自修正',color:'#b45309'},
+    {i:1,text:'不再需要',color:'#059669'}
+  ]
+});
+
+/* ====== 图 6：searchqa（本仓库真实数据） ====== */
+miniBarRows(document.getElementById('chartD1'),{
+  w:640,h:170,
+  groups:[
+    {name:'searchqa selection（400样本）',unit:'hard',bars:[{label:'baseline',v:0.480,color:'#94a3b8'},{label:'best',v:0.515,color:'#059669'}]},
+    {name:'searchqa test',unit:'hard',bars:[{label:'baseline',v:0.494,color:'#94a3b8'},{label:'best',v:0.537,color:'#059669'}]}
+  ]
+});
+
+/* ====== 图 7：interviewer 两实验汇总（真实数据） ====== */
+miniBarRows(document.getElementById('chartD2'),{
+  w:640,h:230,
+  groups:[
+    {name:'实验A 保安34样本 selection',unit:'hard',bars:[{label:'基线',v:0.274,color:'#94a3b8'},{label:'best',v:0.332,color:'#059669'}]},
+    {name:'实验B 保洁3样本 selection',unit:'hard',bars:[{label:'基线',v:0.0,color:'#dc2626'},{label:'best',v:0.667,color:'#059669'}]},
+    {name:'实验B test',unit:'hard',bars:[{label:'基线',v:0.667,color:'#94a3b8'},{label:'best',v:0.767,color:'#059669'}]}
+  ]
+});
+</script>
+</body>
+</html>
